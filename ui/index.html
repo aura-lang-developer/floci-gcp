@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Floci-GCP Console · Local Google Cloud Platform Runtime</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%200%20100%20100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
+  <link rel="stylesheet" href="/_gcp/ui/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="dark-theme">
+  <!-- App Container -->
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">
+          <span class="gcp-icon">🌐</span>
+          <span class="aura-badge">Aura</span>
+        </div>
+        <div class="brand-text">
+          <h1>Floci<span>-GCP</span></h1>
+          <p class="tagline">Local Google Cloud</p>
+        </div>
+      </div>
+
+      <div class="runtime-status-pill" id="runtimeStatusPill">
+        <span class="status-dot pulsing"></span>
+        <span class="status-text">Aura Native Online</span>
+        <span class="port-label">:8080</span>
+      </div>
+
+      <nav class="nav-menu">
+        <div class="nav-group-title">DASHBOARD</div>
+        <button class="nav-item active" data-tab="overview">
+          <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+          <span>Overview</span>
+        </button>
+        <button class="nav-item" data-tab="requests">
+          <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+          <span>Live Audit Log</span>
+          <span class="badge" id="navReqCount">0</span>
+        </button>
+
+        <div class="nav-group-title">STORAGE & DATABASES</div>
+        <button class="nav-item" data-tab="storage">
+          <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.89-2-2-2zm0 14H5V8h14v10z"/></svg>
+          <span>Cloud Storage (GCS)</span>
+          <span class="badge" id="navStorageCount">0</span>
+        </button>
+        <button class="nav-item" data-tab="firestore">
+          <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3C7.58 3 4 4.79 4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7c0-2.21-3.58-4-8-4zm0 2c3.87 0 6 1.5 6 2s-2.13 2-6 2-6-1.5-6-2 2.13-2 6-2zm6 12c0 .5-2.13 2-6 2s-6-1.5-6-2v-2.23c1.61.78 3.72 1.23 6 1.23s4.39-.45 6-1.23V17z"/></svg>
+          <span>Cloud Firestore</span>
+          <span class="badge" id="navFirestoreCount">0</span>
+        </button>
+
+        <div class="nav-group-title">MESSAGING & PUBSUB</div>
+        <button class="nav-item" data-tab="pubsub">
+          <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+          <span>Cloud Pub/Sub</span>
+          <span class="badge" id="navPubSubCount">0</span>
+        </button>
+
+        <div class="nav-group-title">COMPUTE & SERVERLESS</div>
+        <button class="nav-item" data-tab="functions">
+          <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+          <span>Cloud Functions v2</span>
+          <span class="badge" id="navFunctionsCount">0</span>
+        </button>
+
+        <div class="nav-group-title">SECURITY & SECRETS</div>
+        <button class="nav-item" data-tab="secrets">
+          <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          <span>Secret Manager</span>
+          <span class="badge" id="navSecretsCount">0</span>
+        </button>
+        <button class="nav-item" data-tab="kms">
+          <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+          <span>Cloud KMS</span>
+          <span class="badge" id="navKmsCount">0</span>
+        </button>
+
+        <div class="nav-group-title">OBSERVABILITY</div>
+        <button class="nav-item" data-tab="logging">
+          <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+          <span>Cloud Logging</span>
+          <span class="badge" id="navLoggingCount">0</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="/site" class="footer-link">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+          <span>Site Playground</span>
+        </a>
+        <button class="footer-action-btn" id="btnResetState" title="Reset State">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+          <span>Wipe State</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content-container">
+      <!-- Top Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h2 class="section-title" id="currentSectionTitle">Dashboard Overview</h2>
+          <span class="region-badge">Project: local-project (us-central1)</span>
+        </div>
+        <div class="topbar-right">
+          <div class="telemetry-pill">
+            <span class="label">Cold Start:</span>
+            <span class="val accent">~1.8 ms</span>
+          </div>
+          <div class="telemetry-pill">
+            <span class="label">Memory:</span>
+            <span class="val green">8.2 MB</span>
+          </div>
+          <div class="telemetry-pill">
+            <span class="label">Requests:</span>
+            <span class="val blue" id="topbarTotalRequests">0</span>
+          </div>
+          <button class="btn-refresh" id="btnManualRefresh" title="Refresh Telemetry">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Views Stack -->
+      <div class="views-wrapper">
+        <!-- 1. OVERVIEW VIEW -->
+        <section class="view active" id="view-overview">
+          <div class="hero-stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon storage-color">🗄️</div>
+              <div class="stat-meta">
+                <span class="stat-label">Cloud Storage</span>
+                <span class="stat-number" id="statStorageCount">0</span>
+                <span class="stat-sub">Buckets & Objects</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon pubsub-color">📬</div>
+              <div class="stat-meta">
+                <span class="stat-label">Cloud Pub/Sub</span>
+                <span class="stat-number" id="statPubSubCount">0</span>
+                <span class="stat-sub">Topics & Subscriptions</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon firestore-color">🔥</div>
+              <div class="stat-meta">
+                <span class="stat-label">Firestore Documents</span>
+                <span class="stat-number" id="statFirestoreCount">0</span>
+                <span class="stat-sub">NoSQL Documents</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon functions-color">⚡</div>
+              <div class="stat-meta">
+                <span class="stat-label">Cloud Functions</span>
+                <span class="stat-number" id="statFunctionsCount">0</span>
+                <span class="stat-sub">Serverless Runtimes</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick SDK Setup & Terminal snippet -->
+          <div class="card terminal-card">
+            <div class="card-header">
+              <div class="card-title">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10z"/></svg>
+                <span>Google Cloud SDK & Local Environment Setup</span>
+              </div>
+              <span class="badge green">Zero Auth Tokens Required</span>
+            </div>
+            <div class="card-body">
+              <p class="desc-text">Connect Python, Node.js, Go, Terraform or the Google Cloud CLI (`gcloud`) directly to Floci-GCP:</p>
+              <div class="code-box">
+                <pre><code><span class="cmd-comment"># Configure standard Google Cloud Emulator environment variables</span>
+<span class="cmd-kw">export</span> STORAGE_EMULATOR_HOST=http://localhost:8080
+<span class="cmd-kw">export</span> PUBSUB_EMULATOR_HOST=localhost:8080
+<span class="cmd-kw">export</span> FIRESTORE_EMULATOR_HOST=localhost:8080
+<span class="cmd-kw">export</span> CLOUDSDK_CORE_PROJECT=local-project
+
+<span class="cmd-comment"># Test with curl or your preferred Google Cloud client</span>
+curl -s http://localhost:8080/storage/v1/b?project=local-project</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Runtime Event Stream -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                <span>Aura Native Runtime Events</span>
+              </div>
+              <span class="badge blue">Live CSP Feed</span>
+            </div>
+            <div class="card-body logs-table-container">
+              <table class="data-table" id="liveLogsTable">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Level</th>
+                    <th>Subsystem</th>
+                    <th>Message</th>
+                  </tr>
+                </thead>
+                <tbody id="liveLogsBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. LIVE AUDIT LOG -->
+        <section class="view" id="view-requests">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <span>Real-Time HTTP Traffic Audit</span>
+              </div>
+              <button class="btn-sm" id="btnClearAuditLogs">Clear History</button>
+            </div>
+            <div class="card-body">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Method</th>
+                    <th>Service</th>
+                    <th>Path</th>
+                    <th>Status</th>
+                    <th>Latency</th>
+                  </tr>
+                </thead>
+                <tbody id="auditLogsBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. CLOUD STORAGE (GCS) -->
+        <section class="view" id="view-storage">
+          <div class="two-col-grid">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title"><span>Create GCS Bucket</span></div>
+              </div>
+              <div class="card-body">
+                <form id="formCreateBucket">
+                  <div class="form-group">
+                    <label>Bucket Name</label>
+                    <input type="text" id="inputBucketName" placeholder="my-gcp-data-lake" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Location</label>
+                    <select id="selectBucketLocation">
+                      <option value="US">US (Multi-region)</option>
+                      <option value="EU">EU (Multi-region)</option>
+                      <option value="us-central1">us-central1 (Iowa)</option>
+                      <option value="southamerica-west1">southamerica-west1 (Santiago)</option>
+                    </select>
+                  </div>
+                  <button type="submit" class="btn-primary">Create Bucket</button>
+                </form>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title"><span>Upload Object to GCS</span></div>
+              </div>
+              <div class="card-body">
+                <form id="formUploadObject">
+                  <div class="form-group">
+                    <label>Target Bucket</label>
+                    <select id="selectTargetBucket" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label>Object Key / Name</label>
+                    <input type="text" id="inputObjectName" placeholder="datasets/report.json" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Content</label>
+                    <textarea id="inputObjectContent" rows="3" placeholder="Payload content..."></textarea>
+                  </div>
+                  <button type="submit" class="btn-primary">Upload Object</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>Cloud Storage Buckets & Objects</span></div>
+            </div>
+            <div class="card-body">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Location / Size</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="storageTableBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. CLOUD FIRESTORE -->
+        <section class="view" id="view-firestore">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>Insert Document into Firestore</span></div>
+            </div>
+            <div class="card-body">
+              <form id="formInsertFirestoreDoc">
+                <div class="three-col-grid">
+                  <div class="form-group">
+                    <label>Collection</label>
+                    <input type="text" id="inputFirestoreCollection" placeholder="customers" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Document ID (optional)</label>
+                    <input type="text" id="inputFirestoreDocId" placeholder="cust-9001">
+                  </div>
+                  <div class="form-group">
+                    <label>JSON Fields</label>
+                    <input type="text" id="inputFirestoreFields" placeholder='{"name":{"stringValue":"Alice"}}' required>
+                  </div>
+                </div>
+                <button type="submit" class="btn-primary">Save Document</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>Firestore Documents Explorer</span></div>
+            </div>
+            <div class="card-body">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Collection</th>
+                    <th>Document ID</th>
+                    <th>Fields Payload</th>
+                    <th>Updated</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="firestoreTableBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. CLOUD PUBSUB -->
+        <section class="view" id="view-pubsub">
+          <div class="two-col-grid">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title"><span>Create Topic / Subscription</span></div>
+              </div>
+              <div class="card-body">
+                <form id="formCreateTopic">
+                  <div class="form-group">
+                    <label>Topic ID</label>
+                    <input type="text" id="inputTopicId" placeholder="order-events" required>
+                  </div>
+                  <button type="submit" class="btn-primary">Create Topic</button>
+                </form>
+                <hr style="border:0;border-top:1px solid var(--border-color);margin:16px 0;">
+                <form id="formCreateSub">
+                  <div class="form-group">
+                    <label>Subscription ID</label>
+                    <input type="text" id="inputSubId" placeholder="order-sub" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Attached Topic</label>
+                    <select id="selectSubTopic" required></select>
+                  </div>
+                  <button type="submit" class="btn-primary">Create Subscription</button>
+                </form>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title"><span>Publish Message</span></div>
+              </div>
+              <div class="card-body">
+                <form id="formPublishMessage">
+                  <div class="form-group">
+                    <label>Select Topic</label>
+                    <select id="selectPublishTopic" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label>Message Data (Plaintext or Base64)</label>
+                    <textarea id="inputPublishData" rows="3" placeholder="Hello from Pub/Sub!" required></textarea>
+                  </div>
+                  <button type="submit" class="btn-primary">Publish Message (Auto-Fanout)</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>Pub/Sub Topics & Subscriptions</span></div>
+            </div>
+            <div class="card-body">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Target / Details</th>
+                    <th>Pending Messages</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="pubsubTableBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. CLOUD FUNCTIONS -->
+        <section class="view" id="view-functions">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>Register Cloud Function v2</span></div>
+            </div>
+            <div class="card-body">
+              <form id="formRegisterFunction">
+                <div class="three-col-grid">
+                  <div class="form-group">
+                    <label>Function Name</label>
+                    <input type="text" id="inputFunctionName" placeholder="sendNotification" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Runtime</label>
+                    <select id="selectFunctionRuntime">
+                      <option value="nodejs20">Node.js 20</option>
+                      <option value="python311">Python 3.11</option>
+                      <option value="go122">Go 1.22</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Entry Point</label>
+                    <input type="text" id="inputFunctionEntryPoint" placeholder="handleRequest" required>
+                  </div>
+                </div>
+                <button type="submit" class="btn-primary">Register Function</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>Active Serverless Functions</span></div>
+            </div>
+            <div class="card-body">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Function Name</th>
+                    <th>Runtime</th>
+                    <th>Entry Point</th>
+                    <th>State</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="functionsTableBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 7. SECRET MANAGER -->
+        <section class="view" id="view-secrets">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>Create Secret & Payload</span></div>
+            </div>
+            <div class="card-body">
+              <form id="formCreateSecret">
+                <div class="two-col-grid">
+                  <div class="form-group">
+                    <label>Secret ID</label>
+                    <input type="text" id="inputSecretId" placeholder="prod-api-key" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Secret Value (Payload)</label>
+                    <input type="text" id="inputSecretValue" placeholder="super_secret_token_12345" required>
+                  </div>
+                </div>
+                <button type="submit" class="btn-primary">Create Secret</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>Stored Secrets & Versions</span></div>
+            </div>
+            <div class="card-body">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Secret ID</th>
+                    <th>Project</th>
+                    <th>Versions</th>
+                    <th>Latest Payload</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="secretsTableBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 8. CLOUD KMS -->
+        <section class="view" id="view-kms">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>Key Management Service (Cloud KMS)</span></div>
+            </div>
+            <div class="card-body">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>KeyRing</th>
+                    <th>Location</th>
+                    <th>CryptoKeys</th>
+                    <th>Purpose</th>
+                  </tr>
+                </thead>
+                <tbody id="kmsTableBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 9. CLOUD LOGGING -->
+        <section class="view" id="view-logging">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>Ingested Cloud Logging Entries</span></div>
+            </div>
+            <div class="card-body">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Severity</th>
+                    <th>Log Name</th>
+                    <th>Payload</th>
+                  </tr>
+                </thead>
+                <tbody id="loggingTableBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="/_gcp/ui/app.js"></script>
+</body>
+</html>

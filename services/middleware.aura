@@ -1,0 +1,32 @@
+// ==============================================================================
+// FLOCI-GCP: CORS, Logging & Request Buffering Middleware
+// ==============================================================================
+
+import { incrementRequestsCount } from "./state";
+
+export fn registerCorsAndBufferMiddleware(mux: Any): Unit => {
+  mux.use(fn(req: Any, res: Any, next: Any) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Goog-Api-Client, X-Goog-User-Project, Metadata-Flavor, x-goog-resumable, Origin, Accept");
+    res.setHeader("X-Powered-By", "Floci-GCP (Aura Lang Native Engine)");
+    res.setHeader("Server", "floci-gcp/0.1.0");
+
+    if (req.method == "OPTIONS") {
+      res.writeHead(http.StatusNoContent);
+      res.end();
+      return();
+    }
+
+    let mut buffer = "";
+    req.on("data", fn(chunk: Any) => {
+      buffer = buffer + chunk;
+    });
+
+    req.on("end", fn() => {
+      req.rawBody = buffer;
+      incrementRequestsCount();
+      next();
+    });
+  });
+};

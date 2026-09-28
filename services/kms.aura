@@ -1,0 +1,143 @@
+// ==============================================================================
+// FLOCI-GCP: Cloud KMS REST API v1
+// ==============================================================================
+
+import { getState } from "./state";
+import { auditRequest, logEvent, safeParseJson, defaultStr } from "./utils";
+
+export fn registerKmsRoutes(mux: Any): Unit => {
+  // 1. Create KeyRing: POST /v1/projects/:project/locations/:location/keyRings
+  mux.post("/v1/projects/:project/locations/:location/keyRings", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let location = http.pathValue(req, "location");
+    let queryRingId = http.query(req, "keyRingId");
+    let ringId = if (queryRingId != "") {
+      queryRingId
+    }else {
+      "keyring"
+    };
+    let fullName = `projects/${project}/locations/${location}/keyRings/${ringId}`;
+    auditRequest(req, "CloudKMS", 200);
+
+    let exists = s.kmsKeyRings.filter(fn(r: Any): Bool => r.name == fullName);
+    let ringRecord = if (exists.length > 0) {
+      exists[0]
+    }else {
+      let r = {
+        name: fullName,
+        ringId: ringId,
+        location: location,
+        project: project,
+        cryptoKeys: []
+      };
+      s.kmsKeyRings.push(r);
+      logEvent("KMS", "info", `Created KeyRing '${fullName}'`);
+      r
+    };
+
+    http.json(res, http.StatusOK, ringRecord);
+  });
+
+  // 2. List KeyRings: GET /v1/projects/:project/locations/:location/keyRings
+  mux.get("/v1/projects/:project/locations/:location/keyRings", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let location = http.pathValue(req, "location");
+    auditRequest(req, "CloudKMS", 200);
+
+    let rings = s.kmsKeyRings.filter(fn(r: Any): Bool => r.project == project && r.location == location);
+    http.json(res, http.StatusOK, {keyRings: rings});
+  });
+
+  // 3. Create CryptoKey: POST /v1/projects/:project/locations/:location/keyRings/:ring/cryptoKeys
+  mux.post("/v1/projects/:project/locations/:location/keyRings/:ring/cryptoKeys", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let location = http.pathValue(req, "location");
+    let ringId = http.pathValue(req, "ring");
+    let queryKeyId = http.query(req, "cryptoKeyId");
+    let keyId = if (queryKeyId != "") {
+      queryKeyId
+    }else {
+      "key"
+    };
+    let ringName = `projects/${project}/locations/${location}/keyRings/${ringId}`;
+    let fullName = `${ringName}/cryptoKeys/${keyId}`;
+    let payload = safeParseJson(req.rawBody);
+    auditRequest(req, "CloudKMS", 200);
+
+    let keyRecord = {
+      name: fullName,
+      keyId: keyId,
+      purpose: defaultStr(payload.purpose, "ENCRYPT_DECRYPT"),
+      primary: {
+        state: "ENABLED"
+      }
+    };
+
+    let matched = s.kmsKeyRings.filter(fn(r: Any): Bool => r.name == ringName || r.ringId == ringId);
+    if (matched.length > 0) {
+      matched[0].cryptoKeys.push(keyRecord);
+      logEvent("KMS", "info", `Created CryptoKey '${fullName}'`);
+    }
+
+    http.json(res, http.StatusOK, keyRecord);
+  });
+
+  // 4. List CryptoKeys: GET /v1/projects/:project/locations/:location/keyRings/:ring/cryptoKeys
+  mux.get("/v1/projects/:project/locations/:location/keyRings/:ring/cryptoKeys", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let location = http.pathValue(req, "location");
+    let ringId = http.pathValue(req, "ring");
+    let ringName = `projects/${project}/locations/${location}/keyRings/${ringId}`;
+    auditRequest(req, "CloudKMS", 200);
+
+    let matched = s.kmsKeyRings.filter(fn(r: Any): Bool => r.name == ringName || r.ringId == ringId);
+    if (matched.length > 0) {
+      http.json(res, http.StatusOK, {cryptoKeys: matched[0].cryptoKeys});
+    }else {
+      http.json(res, http.StatusOK, {cryptoKeys: []});
+    }
+  });
+
+  // 5. CryptoKey Actions (Encrypt / Decrypt): POST /v1/projects/:project/locations/:location/keyRings/:ring/cryptoKeys/:keyAction
+  mux.post("/v1/projects/:project/locations/:location/keyRings/:ring/cryptoKeys/:keyAction", fn(req: Any, res: Any) => {
+    let project = http.pathValue(req, "project");
+    let location = http.pathValue(req, "location");
+    let ringId = http.pathValue(req, "ring");
+    let keyAction = http.pathValue(req, "keyAction");
+    let payload = safeParseJson(req.rawBody);
+    auditRequest(req, "CloudKMS", 200);
+
+    if (keyAction.endsWith(":encrypt")) {
+      let keyId = keyAction.replace(":encrypt", "");
+      let fullName = `projects/${project}/locations/${location}/keyRings/${ringId}/cryptoKeys/${keyId}`;
+      let plain = defaultStr(payload.plaintext, "");
+      logEvent("KMS", "info", `Encrypted data with key '${fullName}'`);
+
+      let mockCipher = `enc_${plain}_encrypted_mock`;
+      http.json(res, http.StatusOK, {
+        name: fullName,
+        ciphertext: mockCipher
+      });
+      return();
+    }
+
+    if (keyAction.endsWith(":decrypt")) {
+      let keyId = keyAction.replace(":decrypt", "");
+      let fullName = `projects/${project}/locations/${location}/keyRings/${ringId}/cryptoKeys/${keyId}`;
+      let cipher = defaultStr(payload.ciphertext, "");
+      logEvent("KMS", "info", `Decrypted data with key '${fullName}'`);
+
+      let recoveredPlain = cipher.replace("enc_", "").replace("_encrypted_mock", "");
+      http.json(res, http.StatusOK, {
+        plaintext: recoveredPlain
+      });
+      return();
+    }
+
+    http.json(res, http.StatusOK, {});
+  });
+};

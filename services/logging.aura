@@ -1,0 +1,38 @@
+// ==============================================================================
+// FLOCI-GCP: Cloud Logging REST API v2
+// ==============================================================================
+
+import { getState } from "./state";
+import { auditRequest, logEvent, safeParseJson, defaultList } from "./utils";
+
+export fn registerLoggingRoutes(mux: Any): Unit => {
+  // 1. Write Log Entries: POST /v2/entries:write
+  mux.post("/v2/entries:write", fn(req: Any, res: Any) => {
+    let s = getState();
+    let payload = safeParseJson(req.rawBody);
+    let entries = defaultList(payload.entries);
+    auditRequest(req, "Logging", 200);
+
+    for e in entries {
+      let logItem = {
+        logName: if (e.logName != ()) {`${e.logName}`}else {"projects/local-project/logs/default"},
+        resource: if (e.resource != ()) {e.resource}else {{type: "global"}},
+        textPayload: if (e.textPayload != ()) {`${e.textPayload}`}else {""},
+        jsonPayload: if (e.jsonPayload != ()) {e.jsonPayload}else {{}},
+        severity: if (e.severity != ()) {`${e.severity}`}else {"INFO"},
+        timestamp: "2026-09-28T12:00:00.000Z"
+      };
+      s.cloudLogs.push(logItem);
+    }
+
+    logEvent("LOGGING", "info", `Ingested ${entries.length} log entry(ies)`);
+    http.json(res, http.StatusOK, {});
+  });
+
+  // 2. List Log Entries: POST /v2/entries:list
+  mux.post("/v2/entries:list", fn(req: Any, res: Any) => {
+    let s = getState();
+    auditRequest(req, "Logging", 200);
+    http.json(res, http.StatusOK, {entries: s.cloudLogs});
+  });
+};

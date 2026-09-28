@@ -1,0 +1,62 @@
+// ==============================================================================
+// FLOCI-GCP: OAuth2 Token & Compute Metadata Server Emulation
+// ==============================================================================
+
+import { auditRequest, logEvent } from "./utils";
+
+export fn registerAuthRoutes(mux: Any): Unit => {
+  // 1. Google OAuth2 Token Mock Endpoint
+  mux.post("/oauth2/v4/token", fn(req: Any, res: Any) => {
+    auditRequest(req, "Auth", 200);
+    logEvent("AUTH", "info", "Issued mock OAuth2 bearer token for client handshake");
+    http.json(res, http.StatusOK, {
+      access_token: "ya29.floci-gcp-mock-token-local",
+      expires_in: 3600,
+      token_type: "Bearer"
+    });
+  });
+
+  mux.post("/token", fn(req: Any, res: Any) => {
+    auditRequest(req, "Auth", 200);
+    http.json(res, http.StatusOK, {
+      access_token: "ya29.floci-gcp-mock-token-local",
+      expires_in: 3600,
+      token_type: "Bearer"
+    });
+  });
+
+  // 2. Compute Metadata Server Endpoints
+  mux.get("/computeMetadata/v1/project/project-id", fn(req: Any, res: Any) => {
+    auditRequest(req, "Metadata", 200);
+    res.setHeader("Metadata-Flavor", "Google");
+    res.setHeader("Content-Type", "text/plain");
+    res.writeHead(http.StatusOK);
+    res.end("local-project");
+  });
+
+  mux.get("/computeMetadata/v1/project/numeric-project-id", fn(req: Any, res: Any) => {
+    auditRequest(req, "Metadata", 200);
+    res.setHeader("Metadata-Flavor", "Google");
+    res.setHeader("Content-Type", "text/plain");
+    res.writeHead(http.StatusOK);
+    res.end("123456789000");
+  });
+
+  mux.get("/computeMetadata/v1/instance/service-accounts/default/token", fn(req: Any, res: Any) => {
+    auditRequest(req, "Metadata", 200);
+    res.setHeader("Metadata-Flavor", "Google");
+    http.json(res, http.StatusOK, {
+      access_token: "ya29.floci-gcp-mock-token-local",
+      expires_in: 3600,
+      token_type: "Bearer"
+    });
+  });
+
+  mux.get("/computeMetadata/v1/instance/service-accounts/default/email", fn(req: Any, res: Any) => {
+    auditRequest(req, "Metadata", 200);
+    res.setHeader("Metadata-Flavor", "Google");
+    res.setHeader("Content-Type", "text/plain");
+    res.writeHead(http.StatusOK);
+    res.end("local-service-account@local-project.iam.gserviceaccount.com");
+  });
+};

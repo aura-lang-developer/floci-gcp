@@ -1,0 +1,81 @@
+// ==============================================================================
+// FLOCI-GCP: Utility Functions & Request Auditing
+// ==============================================================================
+
+import { getState } from "./state";
+
+export fn defaultStr(val: Any, defVal: String): String => {
+  if (val != () && val != "") {
+    `${val}`
+  }else {
+    defVal
+  }
+};
+
+export fn defaultInt(val: Any, defVal: Int): Int => {
+  if (val != ()) {
+    val
+  }else {
+    defVal
+  }
+};
+
+export fn defaultList(val: Any): List<Any> => {
+  if (val != ()) {
+    val
+  }else {
+    []
+  }
+};
+
+export fn generateUuid(): String => {
+  let s = getState();
+  s.nextIdCounter = s.nextIdCounter + 1;
+  let t = time.now();
+  `gcp-${t}-${s.nextIdCounter}`
+};
+
+export fn safeParseJson(raw: String): Any => {
+  if (raw == "" || raw == "{}") {
+    return {};
+  }
+  defer {
+    let rec = recover();
+    match rec {
+      Some(_) => {()},
+      None => {()}
+    }
+  }
+  return JSON.parse(raw);
+};
+
+export fn logEvent(service: String, level: String, message: String): Unit => {
+  let s = getState();
+  let entry = {
+    timestamp: "12:00:02",
+    level: level,
+    service: service,
+    message: message
+  };
+  s.liveLogs.push(entry);
+  if (s.liveLogs.length > 200) {
+    let _ = s.liveLogs.pop();
+  }
+};
+
+export fn auditRequest(req: Any, service: String, status: Int): Unit => {
+  let s = getState();
+  let item = {
+    time: "12:00:03",
+    method: req.method,
+    path: req.url,
+    service: service,
+    status: status,
+    duration: "0.22ms",
+    client: "127.0.0.1"
+  };
+  s.requestAuditLog.push(item);
+  if (s.requestAuditLog.length > 100) {
+    let _ = s.requestAuditLog.pop();
+  }
+};

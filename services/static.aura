@@ -1,0 +1,91 @@
+// ==============================================================================
+// FLOCI-GCP: Embedded Web Console & Promotional Website File Serving
+// ==============================================================================
+
+export fn resolveStaticPath(relPath: String): String => {
+  let cwd = process.cwd();
+  let candidate1 = `${cwd}/${relPath}`;
+  if (fs.existsSync(candidate1)) {
+    candidate1
+  }else {
+    let candidate2 = `${cwd}/floci-gcp/${relPath}`;
+    if (fs.existsSync(candidate2)) {
+      candidate2
+    }else {
+      let candidate3 = `${cwd}/projects/floci-gcp/${relPath}`;
+      if (fs.existsSync(candidate3)) {
+        candidate3
+      }else {
+        candidate1
+      }
+    }
+  }
+};
+
+export fn registerStaticRoutes(mux: Any): Unit => {
+  // Root Redirect to UI when opened in browser
+  mux.get("/", fn(req: Any, res: Any) => {
+    let accept = if (req.headers != () && req.headers["accept"] != ()) {
+      `${req.headers["accept"]}`
+    }else {
+      ""
+    };
+
+    if (accept.includes("text/html")) {
+      http.redirect(res, "/_gcp/ui", 302);
+      return();
+    }
+
+    http.json(res, http.StatusOK, {
+      status: "online",
+      message: "Floci-GCP Local Cloud Emulator ready. Visit /_gcp/ui in browser.",
+      docs: "/site"
+    });
+  });
+
+  // Web Console UI routes
+  mux.get("/_gcp/ui", fn(req: Any, res: Any) => {
+    let htmlPath = resolveStaticPath("ui/index.html");
+    http.serveFile(res, req, htmlPath);
+  });
+
+  mux.get("/_gcp/ui/style.css", fn(req: Any, res: Any) => {
+    let cssPath = resolveStaticPath("ui/style.css");
+    http.serveFile(res, req, cssPath);
+  });
+
+  mux.get("/_gcp/style.css", fn(req: Any, res: Any) => {
+    let cssPath = resolveStaticPath("ui/style.css");
+    http.serveFile(res, req, cssPath);
+  });
+
+  mux.get("/_gcp/ui/app.js", fn(req: Any, res: Any) => {
+    let jsPath = resolveStaticPath("ui/app.js");
+    http.serveFile(res, req, jsPath);
+  });
+
+  mux.get("/_gcp/app.js", fn(req: Any, res: Any) => {
+    let jsPath = resolveStaticPath("ui/app.js");
+    http.serveFile(res, req, jsPath);
+  });
+
+  mux.get("/ui", fn(req: Any, res: Any) => {
+    http.redirect(res, "/_gcp/ui", 302);
+  });
+
+  // Promotional Website routes
+  mux.get("/site", fn(req: Any, res: Any) => {
+    let htmlPath = resolveStaticPath("website/index.html");
+    http.serveFile(res, req, htmlPath);
+  });
+
+  mux.get("/site/style.css", fn(req: Any, res: Any) => {
+    let cssPath = resolveStaticPath("website/style.css");
+    http.serveFile(res, req, cssPath);
+  });
+
+  mux.get("/site/app.js", fn(req: Any, res: Any) => {
+    let jsPath = resolveStaticPath("website/app.js");
+    http.serveFile(res, req, jsPath);
+  });
+};

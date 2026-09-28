@@ -1,0 +1,126 @@
+// ==============================================================================
+// FLOCI-GCP: Cloud Firestore REST API v1
+// ==============================================================================
+
+import { getState } from "./state";
+import { auditRequest, logEvent, safeParseJson, generateUuid, defaultStr } from "./utils";
+
+export fn registerFirestoreRoutes(mux: Any): Unit => {
+  // 1. Create Document (Auto ID): POST /v1/projects/:project/databases/:db/documents/:collection
+  mux.post("/v1/projects/:project/databases/:db/documents/:collection", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let db = http.pathValue(req, "db");
+    let collection = http.pathValue(req, "collection");
+    let payload = safeParseJson(req.rawBody);
+    let docId = generateUuid();
+    let fullName = `projects/${project}/databases/${db}/documents/${collection}/${docId}`;
+    auditRequest(req, "Firestore", 200);
+
+    let doc = {
+      name: fullName,
+      collection: collection,
+      docId: docId,
+      project: project,
+      database: db,
+      fields: if (payload.fields != ()) {payload.fields}else {{}},
+      createTime: "2026-09-28T12:00:00.000Z",
+      updateTime: "2026-09-28T12:00:00.000Z"
+    };
+
+    s.firestoreDocs.push(doc);
+    logEvent("FIRESTORE", "info", `Created document '${fullName}'`);
+    http.json(res, http.StatusOK, doc);
+  });
+
+  // 2. Create or Update Document: PATCH /v1/projects/:project/databases/:db/documents/:collection/:doc
+  mux.patch("/v1/projects/:project/databases/:db/documents/:collection/:doc", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let db = http.pathValue(req, "db");
+    let collection = http.pathValue(req, "collection");
+    let docId = http.pathValue(req, "doc");
+    let fullName = `projects/${project}/databases/${db}/documents/${collection}/${docId}`;
+    let payload = safeParseJson(req.rawBody);
+    auditRequest(req, "Firestore", 200);
+
+    s.firestoreDocs = s.firestoreDocs.filter(fn(d: Any): Bool => d.name != fullName);
+
+    let doc = {
+      name: fullName,
+      collection: collection,
+      docId: docId,
+      project: project,
+      database: db,
+      fields: if (payload.fields != ()) {payload.fields}else {{}},
+      createTime: "2026-09-28T12:00:00.000Z",
+      updateTime: "2026-09-28T12:00:00.000Z"
+    };
+
+    s.firestoreDocs.push(doc);
+    logEvent("FIRESTORE", "info", `Updated document '${fullName}'`);
+    http.json(res, http.StatusOK, doc);
+  });
+
+  // 3. Get Document: GET /v1/projects/:project/databases/:db/documents/:collection/:doc
+  mux.get("/v1/projects/:project/databases/:db/documents/:collection/:doc", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let db = http.pathValue(req, "db");
+    let collection = http.pathValue(req, "collection");
+    let docId = http.pathValue(req, "doc");
+    let fullName = `projects/${project}/databases/${db}/documents/${collection}/${docId}`;
+    auditRequest(req, "Firestore", 200);
+
+    let matched = s.firestoreDocs.filter(fn(d: Any): Bool => d.name == fullName);
+    if (matched.length > 0) {
+      http.json(res, http.StatusOK, matched[0]);
+    }else {
+      http.json(res, http.StatusNotFound, {
+        error: {code: 404, message: `Document not found: ${fullName}`}
+      });
+    }
+  });
+
+  // 4. List Documents in Collection: GET /v1/projects/:project/databases/:db/documents/:collection
+  mux.get("/v1/projects/:project/databases/:db/documents/:collection", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let db = http.pathValue(req, "db");
+    let collection = http.pathValue(req, "collection");
+    auditRequest(req, "Firestore", 200);
+
+    let docs = s.firestoreDocs.filter(fn(d: Any): Bool => d.project == project && d.collection == collection);
+    http.json(res, http.StatusOK, {documents: docs});
+  });
+
+  // 5. Delete Document: DELETE /v1/projects/:project/databases/:db/documents/:collection/:doc
+  mux.delete("/v1/projects/:project/databases/:db/documents/:collection/:doc", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let db = http.pathValue(req, "db");
+    let collection = http.pathValue(req, "collection");
+    let docId = http.pathValue(req, "doc");
+    let fullName = `projects/${project}/databases/${db}/documents/${collection}/${docId}`;
+    auditRequest(req, "Firestore", 200);
+
+    s.firestoreDocs = s.firestoreDocs.filter(fn(d: Any): Bool => d.name != fullName);
+    logEvent("FIRESTORE", "info", `Deleted document '${fullName}'`);
+
+    http.json(res, http.StatusOK, {});
+  });
+
+  // 6. Run Query: POST /v1/projects/:project/databases/:db/documents:runQuery
+  mux.post("/v1/projects/:project/databases/:db/documents:runQuery", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let db = http.pathValue(req, "db");
+    auditRequest(req, "Firestore", 200);
+
+    let results = s.firestoreDocs.map(fn(d: Any): Any => {
+      {document: d, readTime: "2026-09-28T12:00:00.000Z"}
+    });
+
+    http.json(res, http.StatusOK, results);
+  });
+};

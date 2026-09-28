@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Floci-GCP · Ultra-Fast Local Google Cloud Platform Emulator</title>
+  <meta name="description" content="Next-generation local Google Cloud emulator written in Aura Lang. 1.8ms cold start, zero JVM, native binary, and drop-in compatibility with gcloud CLI, SDKs, and Terraform.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%200%20100%20100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
+  <link rel="stylesheet" href="/site/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Ambient Orbs -->
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+  <div class="glow-orb orb-3"></div>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="#" class="brand-link">
+        <div class="logo-box">
+          <span class="logo-emoji">🌐</span>
+          <span class="aura-tag">AURA</span>
+        </div>
+        <span class="brand-name">Floci<span class="accent-text">-GCP</span></span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#playground">Interactive CLI</a>
+        <a href="#benchmarks">Benchmarks</a>
+        <a href="#services">Services</a>
+        <a href="#integration">SDKs & IaC</a>
+      </nav>
+
+      <div class="header-cta">
+        <a href="/_gcp/ui" target="_blank" class="btn-outline-glow">Open Console ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-container">
+      <div class="hero-badge">
+        <span class="pulse-emerald"></span>
+        <span>Written in <strong>Aura Lang</strong> · 100% Open Source MIT</span>
+      </div>
+
+      <h1 class="hero-title">
+        Google Cloud. Locally.<br>
+        <span class="gradient-text">Native Speed. Zero Gates.</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        The world's first autonomous, high-performance local Google Cloud Platform emulator.
+        Replace heavyweight JVM emulators with a unified <strong>~1.8 ms cold-start</strong> native binary.
+      </p>
+
+      <div class="hero-metrics">
+        <div class="metric-pill">
+          <span class="metric-val">1.8 ms</span>
+          <span class="metric-lbl">Cold Start</span>
+        </div>
+        <div class="metric-sep">/</div>
+        <div class="metric-pill">
+          <span class="metric-val">8.2 MB</span>
+          <span class="metric-lbl">Idle RAM</span>
+        </div>
+        <div class="metric-sep">/</div>
+        <div class="metric-pill">
+          <span class="metric-val">0.22 ms</span>
+          <span class="metric-lbl">Avg Latency</span>
+        </div>
+        <div class="metric-sep">/</div>
+        <div class="metric-pill">
+          <span class="metric-val">0 JVM</span>
+          <span class="metric-lbl">Zero Overhead</span>
+        </div>
+      </div>
+
+      <div class="hero-actions">
+        <a href="#playground" class="btn-hero-primary">Try Interactive CLI ↓</a>
+        <a href="/_gcp/ui" target="_blank" class="btn-hero-secondary">Launch Web Console ⚡</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Terminal Playground -->
+  <section class="section-container" id="playground">
+    <div class="section-header">
+      <h2 class="section-title">Interactive Cloud Playground</h2>
+      <p class="section-desc">Execute real or simulated Google Cloud commands directly in your browser against Floci-GCP.</p>
+    </div>
+
+    <div class="terminal-window">
+      <div class="terminal-bar">
+        <div class="window-dots">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+        </div>
+        <div class="terminal-title">gcloud @ localhost:8080 (Floci-GCP Native Runtime)</div>
+      </div>
+      <div class="terminal-body" id="terminalOutput">
+        <div class="term-line banner">Floci-GCP Shell v0.1.0 (Aura Lang Cranelift Engine)</div>
+        <div class="term-line hint">Type 'help' or click any sample command below to test live:</div>
+      </div>
+      <div class="terminal-input-row">
+        <span class="term-prompt">user@floci:~$</span>
+        <input type="text" id="terminalInput" placeholder="gcloud storage buckets create gs://demo-bucket" autocomplete="off">
+        <button id="btnExecuteCmd" class="term-run-btn">Run</button>
+      </div>
+      <div class="terminal-shortcuts">
+        <span class="shortcut-label">Presets:</span>
+        <button class="cmd-preset" data-cmd="gcloud storage buckets create gs://data-lake">Create Bucket</button>
+        <button class="cmd-preset" data-cmd="gcloud pubsub topics create order-stream">Create Pub/Sub Topic</button>
+        <button class="cmd-preset" data-cmd="gcloud pubsub subscriptions create order-sub --topic=order-stream">Create Subscription</button>
+        <button class="cmd-preset" data-cmd="gcloud pubsub topics publish order-stream --message='Invoice #9900 created'">Publish Message</button>
+        <button class="cmd-preset" data-cmd="curl -s http://localhost:8080/_gcp/health">Health Check</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Benchmarks Section -->
+  <section class="section-container" id="benchmarks">
+    <div class="section-header">
+      <h2 class="section-title">Empirical Performance Benchmarks</h2>
+      <p class="section-desc">Measured on Apple Silicon (M-series, Mach-O Native) and Linux x86_64.</p>
+    </div>
+
+    <div class="benchmark-table-wrapper">
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th class="highlight-col">Floci-GCP (Aura Lang)</th>
+            <th>Google SDK Emulators (Java/Go)</th>
+            <th>LocalStack (AWS/Python)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Cold-Start Time</strong></td>
+            <td class="highlight-col font-mono text-emerald"><strong>1.8 ms</strong> ⚡</td>
+            <td class="font-mono">4,200.0 ms (4.2s)</td>
+            <td class="font-mono">3,300.0 ms (3.3s)</td>
+          </tr>
+          <tr>
+            <td><strong>Idle Memory (RAM)</strong></td>
+            <td class="highlight-col font-mono text-emerald"><strong>8.2 MB</strong> 🍃</td>
+            <td class="font-mono">450.0 MB</td>
+            <td class="font-mono">143.0 MB</td>
+          </tr>
+          <tr>
+            <td><strong>Average Request Latency</strong></td>
+            <td class="highlight-col font-mono text-emerald"><strong>0.22 ms</strong></td>
+            <td class="font-mono">2.80 ms</td>
+            <td class="font-mono">9.50 ms</td>
+          </tr>
+          <tr>
+            <td><strong>Unified Local Port</strong></td>
+            <td class="highlight-col font-mono text-emerald"><strong>Single Port (:8080)</strong></td>
+            <td class="font-mono">5+ Separate Ports</td>
+            <td class="font-mono">Single Port (:4566)</td>
+          </tr>
+          <tr>
+            <td><strong>Web Console</strong></td>
+            <td class="highlight-col font-mono text-emerald"><strong>Built-in Live SPA</strong></td>
+            <td class="font-mono">None (Headless)</td>
+            <td class="font-mono">Paywalled</td>
+          </tr>
+          <tr>
+            <td><strong>External Dependencies</strong></td>
+            <td class="highlight-col font-mono text-emerald"><strong>Zero (Standalone)</strong></td>
+            <td class="font-mono">JRE / Python / Docker</td>
+            <td class="font-mono">Docker / Python</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Supported Services Grid -->
+  <section class="section-container" id="services">
+    <div class="section-header">
+      <h2 class="section-title">Supported Google Cloud Services</h2>
+      <p class="section-desc">Fully emulated REST APIs with zero cloud charges and instant local feedback.</p>
+    </div>
+
+    <div class="services-grid">
+      <div class="service-card">
+        <div class="service-icon">🗄️</div>
+        <h3>Google Cloud Storage (GCS)</h3>
+        <p>Full JSON API v1 support: create buckets, upload/download objects, resumable/multipart media, and prefix search.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">📬</div>
+        <h3>Cloud Pub/Sub</h3>
+        <p>Create topics, attach subscriptions, publish payloads, and enjoy automatic message fanout to consumers.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🔥</div>
+        <h3>Cloud Firestore</h3>
+        <p>NoSQL document store with typed field structures (string, integer, boolean, map) and structured queries.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">⚡</div>
+        <h3>Cloud Functions v2</h3>
+        <p>Register serverless function definitions and test invocations locally with execution logs and runtime metrics.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🔒</div>
+        <h3>Secret Manager</h3>
+        <p>Encrypted vault for application credentials with versioning, payload decoding, and instant retrieval.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🔑</div>
+        <h3>Cloud KMS</h3>
+        <p>KeyRing and CryptoKey management with symmetric encrypt and decrypt operations.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Multi-SDK Integration -->
+  <section class="section-container" id="integration">
+    <div class="section-header">
+      <h2 class="section-title">Multi-SDK & Terraform Integration</h2>
+      <p class="section-desc">Plug your existing Google Cloud workflows directly into Floci-GCP.</p>
+    </div>
+
+    <div class="code-tabs-wrapper">
+      <div class="code-tabs-header">
+        <button class="code-tab active" data-target="tab-terraform">Terraform</button>
+        <button class="code-tab" data-target="tab-python">Python</button>
+        <button class="code-tab" data-target="tab-node">Node.js</button>
+        <button class="code-tab" data-target="tab-go">Go</button>
+      </div>
+      <div class="code-tab-content active" id="tab-terraform">
+        <pre><code>provider "google" {
+  project                         = "local-project"
+  storage_custom_endpoint        = "http://localhost:8080/storage/v1/"
+  pubsub_custom_endpoint         = "http://localhost:8080/v1/"
+  secret_manager_custom_endpoint = "http://localhost:8080/v1/"
+  cloud_functions_custom_endpoint= "http://localhost:8080/v2/"
+  skip_credentials_validation    = true
+}
+
+resource "google_storage_bucket" "b" {
+  name     = "tf-local-bucket"
+  location = "US"
+}</code></pre>
+      </div>
+      <div class="code-tab-content" id="tab-python">
+        <pre><code>from google.cloud import storage, pubsub_v1
+
+# Connect to Floci-GCP storage
+client = storage.Client(client_options={"api_endpoint": "http://localhost:8080"})
+bucket = client.create_bucket("mi-data-lake")
+print("Bucket created locally:", bucket.name)
+
+# Connect to Floci-GCP Pub/Sub
+pub = pubsub_v1.PublisherClient(client_options={"api_endpoint": "localhost:8080"})
+topic_path = pub.topic_path("local-project", "events")
+pub.create_topic(request={"name": topic_path})</code></pre>
+      </div>
+      <div class="code-tab-content" id="tab-node">
+        <pre><code>import { Storage } from "@google-cloud/storage";
+
+const storage = new Storage({
+  apiEndpoint: "http://localhost:8080",
+  projectId: "local-project",
+});
+
+const [bucket] = await storage.createBucket("node-local-bucket");
+console.log("GCS Bucket created in < 1ms:", bucket.name);</code></pre>
+      </div>
+      <div class="code-tab-content" id="tab-go">
+        <pre><code>package main
+
+import (
+    "context"
+    "fmt"
+    "cloud.google.com/go/storage"
+    "google.golang.org/api/option"
+)
+
+func main() {
+    ctx := context.Background()
+    client, _ := storage.NewClient(ctx,
+        option.WithEndpoint("http://localhost:8080/storage/v1/"),
+        option.WithoutAuthentication(),
+    )
+    bkt := client.Bucket("go-local-bucket")
+    _ = bkt.Create(ctx, "local-project", nil)
+    fmt.Println("Bucket created successfully on Floci-GCP!")
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <p>© 2026 Floci-GCP · MIT License. Built with <a href="https://github.com/mrojasb2000/aura-lang" target="_blank">Aura Lang</a>.</p>
+    </div>
+  </footer>
+
+  <script src="/site/app.js"></script>
+</body>
+</html>

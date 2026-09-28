@@ -1,0 +1,222 @@
+// ==============================================================================
+// FLOCI-GCP: Cloud Pub/Sub REST API v1
+// ==============================================================================
+
+import { getState } from "./state";
+import { auditRequest, logEvent, safeParseJson, generateUuid, defaultStr, defaultInt, defaultList } from "./utils";
+
+export fn registerPubSubRoutes(mux: Any): Unit => {
+  // 1. Create Topic: PUT /v1/projects/:project/topics/:topic
+  mux.put("/v1/projects/:project/topics/:topic", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let topicId = http.pathValue(req, "topic");
+    let fullName = `projects/${project}/topics/${topicId}`;
+    auditRequest(req, "PubSub", 200);
+
+    let exists = s.pubsubTopics.filter(fn(t: Any): Bool => t.name == fullName);
+    let topicRecord = if (exists.length > 0) {
+      exists[0]
+    }else {
+      let t = {
+        name: fullName,
+        topicId: topicId,
+        project: project,
+        createdAt: "2026-09-28T12:00:00.000Z"
+      };
+      s.pubsubTopics.push(t);
+      logEvent("PUBSUB", "info", `Created topic '${fullName}'`);
+      t
+    };
+
+    http.json(res, http.StatusOK, topicRecord);
+  });
+
+  // 2. List Topics: GET /v1/projects/:project/topics
+  mux.get("/v1/projects/:project/topics", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    auditRequest(req, "PubSub", 200);
+
+    let topics = s.pubsubTopics.filter(fn(t: Any): Bool => t.project == project);
+    http.json(res, http.StatusOK, {topics: topics});
+  });
+
+  // 3. Topic Actions (Get, Delete, Publish): POST/GET/DELETE /v1/projects/:project/topics/:topicAction
+  mux.post("/v1/projects/:project/topics/:topicAction", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let topicAction = http.pathValue(req, "topicAction");
+    let topicId = topicAction.replace(":publish", "");
+    let fullName = `projects/${project}/topics/${topicId}`;
+    let payload = safeParseJson(req.rawBody);
+    let msgs = defaultList(payload.messages);
+    auditRequest(req, "PubSub", 200);
+
+    let mut messageIds: List<String> = [];
+
+    for m in msgs {
+      let msgId = generateUuid();
+      messageIds.push(msgId);
+      let data = defaultStr(m.data, "");
+      let attrs = if (m.attributes != ()) {
+        m.attributes
+      }else {
+        {}
+      };
+
+      // Auto-fanout to all matching subscriptions!
+      for sub in s.pubsubSubscriptions {
+        if (sub.topic == fullName || sub.topic.endsWith(`/${topicId}`)) {
+          let ackId = `ack-${generateUuid()}`;
+          let envelope = {
+            ackId: ackId,
+            message: {
+              messageId: msgId,
+              data: data,
+              attributes: attrs,
+              publishTime: "2026-09-28T12:00:00.000Z"
+            }
+          };
+          sub.messages.push(envelope);
+        }
+      }
+    }
+
+    logEvent("PUBSUB", "info", `Published ${msgs.length} message(s) to topic '${fullName}'`);
+    http.json(res, http.StatusOK, {messageIds: messageIds});
+  });
+
+  mux.get("/v1/projects/:project/topics/:topic", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let topicId = http.pathValue(req, "topic");
+    let fullName = `projects/${project}/topics/${topicId}`;
+    auditRequest(req, "PubSub", 200);
+
+    let matched = s.pubsubTopics.filter(fn(t: Any): Bool => t.name == fullName);
+    if (matched.length > 0) {
+      http.json(res, http.StatusOK, matched[0]);
+    }else {
+      http.json(res, http.StatusNotFound, {
+        error: {code: 404, message: `Resource not found (resource=${fullName}).`}
+      });
+    }
+  });
+
+  mux.delete("/v1/projects/:project/topics/:topic", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let topicId = http.pathValue(req, "topic");
+    let fullName = `projects/${project}/topics/${topicId}`;
+    auditRequest(req, "PubSub", 204);
+
+    s.pubsubTopics = s.pubsubTopics.filter(fn(t: Any): Bool => t.name != fullName);
+    logEvent("PUBSUB", "info", `Deleted topic '${fullName}'`);
+
+    res.writeHead(http.StatusNoContent);
+    res.end();
+  });
+
+  // 4. Create Subscription: PUT /v1/projects/:project/subscriptions/:sub
+  mux.put("/v1/projects/:project/subscriptions/:sub", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let subId = http.pathValue(req, "sub");
+    let fullName = `projects/${project}/subscriptions/${subId}`;
+    let payload = safeParseJson(req.rawBody);
+    let topic = defaultStr(payload.topic, `projects/${project}/topics/default`);
+    let ackDeadline = defaultInt(payload.ackDeadlineSeconds, 10);
+    auditRequest(req, "PubSub", 200);
+
+    let exists = s.pubsubSubscriptions.filter(fn(sub: Any): Bool => sub.name == fullName);
+    let subRecord = if (exists.length > 0) {
+      exists[0]
+    }else {
+      let sub = {
+        name: fullName,
+        subscriptionId: subId,
+        topic: topic,
+        project: project,
+        ackDeadlineSeconds: ackDeadline,
+        messages: []
+      };
+      s.pubsubSubscriptions.push(sub);
+      logEvent("PUBSUB", "info", `Created subscription '${fullName}' attached to '${topic}'`);
+      sub
+    };
+
+    http.json(res, http.StatusOK, subRecord);
+  });
+
+  // 5. List Subscriptions: GET /v1/projects/:project/subscriptions
+  mux.get("/v1/projects/:project/subscriptions", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    auditRequest(req, "PubSub", 200);
+
+    let subs = s.pubsubSubscriptions.filter(fn(sub: Any): Bool => sub.project == project);
+    http.json(res, http.StatusOK, {subscriptions: subs});
+  });
+
+  // 6. Subscription Actions (Pull, Acknowledge): POST /v1/projects/:project/subscriptions/:subAction
+  mux.post("/v1/projects/:project/subscriptions/:subAction", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let subAction = http.pathValue(req, "subAction");
+    auditRequest(req, "PubSub", 200);
+
+    if (subAction.endsWith(":pull")) {
+      let subId = subAction.replace(":pull", "");
+      let fullName = `projects/${project}/subscriptions/${subId}`;
+      let payload = safeParseJson(req.rawBody);
+      let maxMsgs = defaultInt(payload.maxMessages, 10);
+
+      let matched = s.pubsubSubscriptions.filter(fn(sub: Any): Bool => sub.name == fullName || sub.subscriptionId == subId);
+      if (matched.length > 0) {
+        let sub = matched[0];
+        let delivered = sub.messages.slice(0, maxMsgs);
+        http.json(res, http.StatusOK, {receivedMessages: delivered});
+      }else {
+        http.json(res, http.StatusNotFound, {
+          error: {code: 404, message: `Subscription not found: ${fullName}`}
+        });
+      }
+      return();
+    }
+
+    if (subAction.endsWith(":acknowledge")) {
+      let subId = subAction.replace(":acknowledge", "");
+      let fullName = `projects/${project}/subscriptions/${subId}`;
+      let payload = safeParseJson(req.rawBody);
+      let ackIds = defaultList(payload.ackIds);
+
+      let matched = s.pubsubSubscriptions.filter(fn(sub: Any): Bool => sub.name == fullName || sub.subscriptionId == subId);
+      if (matched.length > 0) {
+        let sub = matched[0];
+        sub.messages = sub.messages.filter(fn(m: Any): Bool => !ackIds.includes(m.ackId));
+        logEvent("PUBSUB", "info", `Acknowledged ${ackIds.length} message(s) on '${fullName}'`);
+      }
+
+      http.json(res, http.StatusOK, {});
+      return();
+    }
+
+    http.json(res, http.StatusOK, {});
+  });
+
+  // 7. Delete Subscription: DELETE /v1/projects/:project/subscriptions/:sub
+  mux.delete("/v1/projects/:project/subscriptions/:sub", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let subId = http.pathValue(req, "sub");
+    let fullName = `projects/${project}/subscriptions/${subId}`;
+    auditRequest(req, "PubSub", 204);
+
+    s.pubsubSubscriptions = s.pubsubSubscriptions.filter(fn(sub: Any): Bool => sub.name != fullName);
+    logEvent("PUBSUB", "info", `Deleted subscription '${fullName}'`);
+
+    res.writeHead(http.StatusNoContent);
+    res.end();
+  });
+};

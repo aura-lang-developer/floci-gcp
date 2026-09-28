@@ -1,0 +1,211 @@
+// ==============================================================================
+// FLOCI-GCP: Google Cloud Storage (GCS) JSON API v1
+// ==============================================================================
+
+import { getState } from "./state";
+import { auditRequest, logEvent, safeParseJson, defaultStr } from "./utils";
+
+export fn registerStorageRoutes(mux: Any): Unit => {
+  // 1. Create Bucket: POST /storage/v1/b
+  mux.post("/storage/v1/b", fn(req: Any, res: Any) => {
+    let s = getState();
+    let payload = safeParseJson(req.rawBody);
+    let bName = defaultStr(payload.name, "bucket");
+    let loc = defaultStr(payload.location, "US");
+    auditRequest(req, "GCS", 200);
+
+    let exists = s.gcsBuckets.filter(fn(b: Any): Bool => b.name == bName);
+    let bucketRecord = if (exists.length > 0) {
+      exists[0]
+    }else {
+      let b = {
+        kind: "storage#bucket",
+        id: bName,
+        name: bName,
+        location: loc,
+        storageClass: "STANDARD",
+        timeCreated: "2026-09-28T12:00:00.000Z",
+        updated: "2026-09-28T12:00:00.000Z"
+      };
+      s.gcsBuckets.push(b);
+      logEvent("GCS", "info", `Created bucket gs://${bName}`);
+      b
+    };
+
+    http.json(res, http.StatusOK, bucketRecord);
+  });
+
+  // 2. List Buckets: GET /storage/v1/b
+  mux.get("/storage/v1/b", fn(req: Any, res: Any) => {
+    let s = getState();
+    auditRequest(req, "GCS", 200);
+    http.json(res, http.StatusOK, {
+      kind: "storage#buckets",
+      items: s.gcsBuckets
+    });
+  });
+
+  // 3. Get Bucket: GET /storage/v1/b/:bucket
+  mux.get("/storage/v1/b/:bucket", fn(req: Any, res: Any) => {
+    let s = getState();
+    let bName = http.pathValue(req, "bucket");
+    auditRequest(req, "GCS", 200);
+
+    let matched = s.gcsBuckets.filter(fn(b: Any): Bool => b.name == bName);
+    if (matched.length > 0) {
+      http.json(res, http.StatusOK, matched[0]);
+    }else {
+      http.json(res, http.StatusNotFound, {
+        error: {
+          code: 404,
+          message: `The specified bucket gs://${bName} does not exist.`
+        }
+      });
+    }
+  });
+
+  // 4. Delete Bucket: DELETE /storage/v1/b/:bucket
+  mux.delete("/storage/v1/b/:bucket", fn(req: Any, res: Any) => {
+    let s = getState();
+    let bName = http.pathValue(req, "bucket");
+    auditRequest(req, "GCS", 204);
+
+    s.gcsBuckets = s.gcsBuckets.filter(fn(b: Any): Bool => b.name != bName);
+    s.gcsObjects = s.gcsObjects.filter(fn(o: Any): Bool => o.bucket != bName);
+    logEvent("GCS", "info", `Deleted bucket gs://${bName}`);
+
+    res.writeHead(http.StatusNoContent);
+    res.end();
+  });
+
+  // 5. Upload Object (Media or Multipart): POST /upload/storage/v1/b/:bucket/o
+  mux.post("/upload/storage/v1/b/:bucket/o", fn(req: Any, res: Any) => {
+    let s = getState();
+    let bName = http.pathValue(req, "bucket");
+    let objName = http.query(req, "name");
+    let name = if (objName != "") {
+      objName
+    }else {
+      "object"
+    };
+    let cType = if (req.headers != () && req.headers["content-type"] != ()) {
+      `${req.headers["content-type"]}`
+    }else {
+      "application/octet-stream"
+    };
+
+    let content = req.rawBody;
+    let size = content.length;
+    auditRequest(req, "GCS", 200);
+
+    s.gcsObjects = s.gcsObjects.filter(fn(o: Any): Bool => !(o.bucket == bName && o.name == name));
+
+    let newObj = {
+      kind: "storage#object",
+      id: `${bName}/${name}/1`,
+      name: name,
+      bucket: bName,
+      size: size,
+      contentType: cType,
+      md5Hash: "mockMd5Hash123==",
+      timeCreated: "2026-09-28T12:00:00.000Z",
+      updated: "2026-09-28T12:00:00.000Z",
+      content: content
+    };
+
+    s.gcsObjects.push(newObj);
+    logEvent("GCS", "info", `Uploaded object gs://${bName}/${name} (${size} bytes)`);
+
+    http.json(res, http.StatusOK, newObj);
+  });
+
+  // 6. Direct JSON Insert / Metadata Upload: POST /storage/v1/b/:bucket/o
+  mux.post("/storage/v1/b/:bucket/o", fn(req: Any, res: Any) => {
+    let s = getState();
+    let bName = http.pathValue(req, "bucket");
+    let payload = safeParseJson(req.rawBody);
+    let name = defaultStr(payload.name, "object");
+    auditRequest(req, "GCS", 200);
+
+    let newObj = {
+      kind: "storage#object",
+      id: `${bName}/${name}/1`,
+      name: name,
+      bucket: bName,
+      size: 0,
+      contentType: "application/json",
+      md5Hash: "mockMd5Hash123==",
+      timeCreated: "2026-09-28T12:00:00.000Z",
+      updated: "2026-09-28T12:00:00.000Z",
+      content: ""
+    };
+    s.gcsObjects.push(newObj);
+
+    http.json(res, http.StatusOK, newObj);
+  });
+
+  // 7. List Objects: GET /storage/v1/b/:bucket/o
+  mux.get("/storage/v1/b/:bucket/o", fn(req: Any, res: Any) => {
+    let s = getState();
+    let bName = http.pathValue(req, "bucket");
+    let prefix = http.query(req, "prefix");
+    auditRequest(req, "GCS", 200);
+
+    let objs = s.gcsObjects.filter(fn(o: Any): Bool => {
+      if (o.bucket != bName) {
+        return false;
+      }
+      if (prefix != "" && !o.name.startsWith(prefix)) {
+        return false;
+      }
+      true
+    });
+
+    http.json(res, http.StatusOK, {
+      kind: "storage#objects",
+      items: objs
+    });
+  });
+
+  // 8. Get Object Metadata or Download Content: GET /storage/v1/b/:bucket/o/:object
+  mux.get("/storage/v1/b/:bucket/o/:object", fn(req: Any, res: Any) => {
+    let s = getState();
+    let bName = http.pathValue(req, "bucket");
+    let objName = http.pathValue(req, "object");
+    let alt = http.query(req, "alt");
+    auditRequest(req, "GCS", 200);
+
+    let matched = s.gcsObjects.filter(fn(o: Any): Bool => o.bucket == bName && o.name == objName);
+    if (matched.length > 0) {
+      let obj = matched[0];
+      if (alt == "media") {
+        res.setHeader("Content-Type", obj.contentType);
+        res.writeHead(http.StatusOK);
+        res.end(obj.content);
+        return();
+      }
+      http.json(res, http.StatusOK, obj);
+    }else {
+      http.json(res, http.StatusNotFound, {
+        error: {
+          code: 404,
+          message: `No such object: gs://${bName}/${objName}`
+        }
+      });
+    }
+  });
+
+  // 9. Delete Object: DELETE /storage/v1/b/:bucket/o/:object
+  mux.delete("/storage/v1/b/:bucket/o/:object", fn(req: Any, res: Any) => {
+    let s = getState();
+    let bName = http.pathValue(req, "bucket");
+    let objName = http.pathValue(req, "object");
+    auditRequest(req, "GCS", 204);
+
+    s.gcsObjects = s.gcsObjects.filter(fn(o: Any): Bool => !(o.bucket == bName && o.name == objName));
+    logEvent("GCS", "info", `Deleted object gs://${bName}/${objName}`);
+
+    res.writeHead(http.StatusNoContent);
+    res.end();
+  });
+};

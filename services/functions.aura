@@ -1,0 +1,111 @@
+// ==============================================================================
+// FLOCI-GCP: Cloud Functions v2 REST API
+// ==============================================================================
+
+import { getState } from "./state";
+import { auditRequest, logEvent, safeParseJson, generateUuid, defaultStr } from "./utils";
+
+export fn registerFunctionsRoutes(mux: Any): Unit => {
+  // 1. Create Function: POST /v2/projects/:project/locations/:location/functions
+  mux.post("/v2/projects/:project/locations/:location/functions", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let location = http.pathValue(req, "location");
+    let queryFuncId = http.query(req, "functionId");
+    let payload = safeParseJson(req.rawBody);
+    let funcId = if (queryFuncId != "") {
+      queryFuncId
+    }else if (payload.functionId != ()) {
+      `${payload.functionId}`
+    }else {
+      "function"
+    };
+
+    let fullName = `projects/${project}/locations/${location}/functions/${funcId}`;
+    auditRequest(req, "CloudFunctions", 200);
+
+    let newFunc = {
+      name: fullName,
+      functionId: funcId,
+      project: project,
+      location: location,
+      runtime: defaultStr(payload.runtime, "nodejs20"),
+      entryPoint: defaultStr(payload.entryPoint, "handler"),
+      state: "ACTIVE",
+      environmentVariables: if (payload.environmentVariables != ()) {payload.environmentVariables}else {{}},
+      updateTime: "2026-09-28T12:00:00.000Z"
+    };
+
+    s.cloudFunctions.push(newFunc);
+    logEvent("FUNCTIONS", "info", `Registered Cloud Function '${fullName}'`);
+    http.json(res, http.StatusOK, newFunc);
+  });
+
+  // 2. List Functions: GET /v2/projects/:project/locations/:location/functions
+  mux.get("/v2/projects/:project/locations/:location/functions", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let location = http.pathValue(req, "location");
+    auditRequest(req, "CloudFunctions", 200);
+
+    let funcs = s.cloudFunctions.filter(fn(f: Any): Bool => f.project == project && f.location == location);
+    http.json(res, http.StatusOK, {functions: funcs});
+  });
+
+  // 3. Call Function: POST /v2/projects/:project/locations/:location/functions/:funcAction
+  mux.post("/v2/projects/:project/locations/:location/functions/:funcAction", fn(req: Any, res: Any) => {
+    let project = http.pathValue(req, "project");
+    let location = http.pathValue(req, "location");
+    let funcAction = http.pathValue(req, "funcAction");
+    let funcId = funcAction.replace(":call", "");
+    let fullName = `projects/${project}/locations/${location}/functions/${funcId}`;
+    auditRequest(req, "CloudFunctions", 200);
+    logEvent("FUNCTIONS", "info", `Invoked Cloud Function '${fullName}'`);
+
+    let executionId = generateUuid();
+    http.json(res, http.StatusOK, {
+      executionId: executionId,
+      result: JSON.stringify({
+        status: "OK",
+        message: `Execution successful from Floci-GCP for function ${funcId}`,
+        executionTimeMs: 0.72,
+        memoryUsedMb: 18
+      })
+    });
+  });
+
+  // 4. Get Function: GET /v2/projects/:project/locations/:location/functions/:func
+  mux.get("/v2/projects/:project/locations/:location/functions/:func", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let location = http.pathValue(req, "location");
+    let funcId = http.pathValue(req, "func");
+    let fullName = `projects/${project}/locations/${location}/functions/${funcId}`;
+    auditRequest(req, "CloudFunctions", 200);
+
+    let matched = s.cloudFunctions.filter(fn(f: Any): Bool => f.name == fullName || f.functionId == funcId);
+    if (matched.length > 0) {
+      http.json(res, http.StatusOK, matched[0]);
+    }else {
+      http.json(res, http.StatusNotFound, {
+        error: {code: 404, message: `Function not found: ${fullName}`}
+      });
+    }
+  });
+
+  // 5. Delete Function: DELETE /v2/projects/:project/locations/:location/functions/:func
+  mux.delete("/v2/projects/:project/locations/:location/functions/:func", fn(req: Any, res: Any) => {
+    let s = getState();
+    let project = http.pathValue(req, "project");
+    let location = http.pathValue(req, "location");
+    let funcId = http.pathValue(req, "func");
+    let fullName = `projects/${project}/locations/${location}/functions/${funcId}`;
+    auditRequest(req, "CloudFunctions", 204);
+
+    s.cloudFunctions = s.cloudFunctions.filter(fn(f: Any): Bool => f.name != fullName && f.functionId != funcId);
+    logEvent("FUNCTIONS", "info", `Deleted Cloud Function '${fullName}'`);
+
+    res.writeHead(http.StatusNoContent);
+    res.end();
+  });
+};

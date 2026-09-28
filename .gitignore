@@ -1,0 +1,7 @@
+floci-gcp-bin
+*.bin
+*.o
+*.a
+.DS_Store
+*.mjs
+*.mjs.map
