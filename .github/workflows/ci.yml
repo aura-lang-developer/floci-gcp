@@ -1,0 +1,112 @@
+name: CI Test & Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-services:
+    name: Test Services & Runtime
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout aura-gcp
+        uses: actions/checkout@v4
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: aurac-compiler-cache
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build Aura Compiler (aurac)
+        run: |
+          echo "Cloning aura-lang compiler..."
+          git clone --depth 1 https://github.com/aura-lang-developer/aura-lang.git /tmp/aura-lang
+          cd /tmp/aura-lang
+          mkdir -p playground && echo '<!DOCTYPE html><html><body><h1>Aura Playground</h1></body></html>' > playground/index.html
+          python3 -c "p='crates/aura-runtime/src/context.rs'; content=open(p).read(); 'options(att_syntax)' in content or open(p,'w').write(content.replace('\"    ret\"\\n);', '\"    ret\",\\n    options(att_syntax)\\n);')" 2>/dev/null || true
+          cargo build --release --bin aurac
+          sudo cp target/release/aurac /usr/local/bin/aurac
+          aurac
+
+      - name: Verify server.aura type check
+        run: |
+          aurac check server.aura
+
+      - name: Run Integration Tests (38 assertions across 8 GCP services)
+        run: |
+          echo "Starting Aura GCP server in background..."
+          GCP_PORT=8080 aurac run server.aura &
+          SERVER_PID=$!
+
+          echo "Waiting for server to become healthy..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8080/_gcp/health | grep -q '"status":"healthy"'; then
+              echo "Server is ready on port 8080!"
+              break
+            fi
+            sleep 1
+          done
+
+          # Execute full test suite
+          bash scripts/test_services.sh 8080
+
+          # Terminate server
+          kill $SERVER_PID || true
+
+  docker-test:
+    name: Docker Build & Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: aura-gcp:ci-test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Container Health and Endpoints
+        run: |
+          docker run -d --name aura-ci-container -p 8080:8080 aura-gcp:ci-test
+
+          echo "Waiting for container healthcheck..."
+          for i in {1..40}; do
+            STATUS=$(docker inspect --format='{{json .State.Health.Status}}' aura-ci-container 2>/dev/null || echo "starting")
+            if [ "$STATUS" == '"healthy"' ]; then
+              echo "Container is healthy!"
+              break
+            fi
+            sleep 1
+          done
+
+          docker ps
+          docker logs aura-ci-container
+
+          # Run integration tests against Docker container
+          bash scripts/test_services.sh 8080
+
+          # Teardown
+          docker stop aura-ci-container
+          docker rm aura-ci-container

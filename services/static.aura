@@ -1,5 +1,5 @@
 // ==============================================================================
-// FLOCI-GCP: Embedded Web Console & Promotional Website File Serving
+// AURA-GCP: Embedded Web Console & Promotional Website File Serving
 // ==============================================================================
 
 export fn resolveStaticPath(relPath: String): String => {
@@ -8,11 +8,11 @@ export fn resolveStaticPath(relPath: String): String => {
   if (fs.existsSync(candidate1)) {
     candidate1
   }else {
-    let candidate2 = `${cwd}/floci-gcp/${relPath}`;
+    let candidate2 = `${cwd}/aura-gcp/${relPath}`;
     if (fs.existsSync(candidate2)) {
       candidate2
     }else {
-      let candidate3 = `${cwd}/projects/floci-gcp/${relPath}`;
+      let candidate3 = `${cwd}/projects/aura-gcp/${relPath}`;
       if (fs.existsSync(candidate3)) {
         candidate3
       }else {
@@ -38,7 +38,7 @@ export fn registerStaticRoutes(mux: Any): Unit => {
 
     http.json(res, http.StatusOK, {
       status: "online",
-      message: "Floci-GCP Local Cloud Emulator ready. Visit /_gcp/ui in browser.",
+      message: "Aura-GCP Local Cloud Emulator ready. Visit /_gcp/ui in browser.",
       docs: "/site"
     });
   });

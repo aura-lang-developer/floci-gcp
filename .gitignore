@@ -1,7 +1,9 @@
-floci-gcp-bin
+aura-gcp-bin
 *.bin
 *.o
 *.a
 .DS_Store
 *.mjs
 *.mjs.map
+dist/
+release/

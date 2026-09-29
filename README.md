@@ -1,4 +1,4 @@
-# 🌐 Floci-GCP · Local Google Cloud Platform Emulator
+# 🌐 Aura-GCP · Local Google Cloud Platform Emulator
 
 [![Aura Lang](https://img.shields.io/badge/Language-Aura_Lang_Native-cyan.svg)](https://github.com/mrojasb2000/aura-lang)
 [![Cold Start](https://img.shields.io/badge/Cold--Start-1.8_ms-brightgreen.svg)](#-rendimiento-empírico-y-benchmarks)
@@ -16,7 +16,7 @@
 
 ## 📑 Tabla de Contenidos
 
-1. [🌟 ¿Qué es Floci-GCP?](#-qué-es-floci-gcp)
+1. [🌟 ¿Qué es Aura-GCP?](#-qué-es-aura-gcp)
 2. [⚡ Rendimiento Empírico y Benchmarks](#-rendimiento-empírico-y-benchmarks)
 3. [🏛️ Arquitectura del Sistema](#️-arquitectura-del-sistema)
 4. [🚀 Inicio Rápido en 10 Segundos](#-inicio-rápido-en-10-segundos)
@@ -38,13 +38,13 @@
 
 ---
 
-## 🌟 ¿Qué es Floci-GCP?
+## 🌟 ¿Qué es Aura-GCP?
 
-**Floci-GCP** resuelve el mayor problema histórico del desarrollo local en Google Cloud Platform: la **fragmentación y lentitud de los emuladores**.
+**Aura-GCP** resuelve el mayor problema histórico del desarrollo local en Google Cloud Platform: la **fragmentación y lentitud de los emuladores**.
 
 Hasta hoy, los ingenieros de GCP se veían forzados a levantar múltiples emuladores independientes (`gcloud beta emulators pubsub`, `firestore`, `bigtable`), cada uno consumiendo un runtime de Java independiente (JRE) con cientos de MB de memoria, puertos dispersos (`8085`, `8080`, `8086`) y sin una consola web unificada.
 
-**Floci-GCP** unifica todos los servicios esenciales en un **único binario nativo compilado en Aura Lang**:
+**Aura-GCP** unifica todos los servicios esenciales en un **único binario nativo compilado en Aura Lang**:
 
 - **Arranque en frío en 1.8 milisegundos**: Listo de inmediato en pipelines de CI/CD efímeros.
 - **Consumo de memoria en reposo de ~8.2 MB**: Menos del 2% del consumo de los emuladores en Java de Google (~450 MB).
@@ -59,7 +59,7 @@ Hasta hoy, los ingenieros de GCP se veían forzados a levantar múltiples emulad
 
 Comparativa empírica realizada en Apple Silicon (macOS Sonoma / Mach-O Native) y Linux x86_64 (ELF Native):
 
-| Métrica de Rendimiento | Floci-GCP (Aura Lang) | Emuladores Oficiales GCP (Java/Go) | LocalStack (AWS/Python) |
+| Métrica de Rendimiento | Aura-GCP (Aura Lang) | Emuladores Oficiales GCP (Java/Go) | LocalStack (AWS/Python) |
 |---|:---:|:---:|:---:|
 | **Tiempo de Arranque (Cold-Start)** | **1.8 ms** ⚡ | 4,200.0 ms (4.2s) | 3,300.0 ms (3.3s) |
 | **Memoria en Reposo (Idle RAM)** | **8.2 MB** 🍃 | 450.0 MB | 143.0 MB |
@@ -78,7 +78,7 @@ Comparativa empírica realizada en Apple Silicon (macOS Sonoma / Mach-O Native) 
 flowchart TD
     Client["Clientes GCP\n(gcloud CLI · Terraform · Python/Node/Go SDKs)"]
 
-    subgraph FlociGCP ["Floci-GCP Engine (Port 8080)"]
+    subgraph AuraGCP ["Aura-GCP Engine (Port 8080)"]
         ServeMux["Aura ServeMux HTTP Engine\nM:N Fiber Concurrency Pipeline"]
         Middleware["Global Middleware\n(CORS · Body Buffering · Auth Mock)"]
         
@@ -124,7 +124,7 @@ flowchart TD
 
 ```bash
 # 1. Navegar al proyecto
-cd /Users/rojasmauricio/Projects/AuraProjects/floci-gcp
+cd /Users/rojasmauricio/Projects/AuraProjects/aura-gcp
 
 # 2. Iniciar el emulador local en el puerto estándar 8080
 aurac run server.aura
@@ -134,10 +134,10 @@ aurac run server.aura
 
 ```bash
 # Compilar directamente a binario ejecutable sin dependencias
-aurac build server.aura -o floci-gcp-bin
+aurac build server.aura -o aura-gcp-bin
 
 # Ejecutar el binario
-./floci-gcp-bin
+./aura-gcp-bin
 ```
 
 ### Opción 3: Usar el script de lanzamiento
@@ -150,7 +150,7 @@ aurac build server.aura -o floci-gcp-bin
 
 ## 🖥️ Consola Web Integrada (`/_gcp/ui`)
 
-Floci-GCP incluye una consola web en tiempo real inspirada en **Google Cloud Console**, servida en:
+Aura-GCP incluye una consola web en tiempo real inspirada en **Google Cloud Console**, servida en:
 
 👉 **`http://localhost:8080/_gcp/ui`** (o simplemente abriendo `http://localhost:8080` en tu navegador).
 
@@ -168,9 +168,9 @@ Floci-GCP incluye una consola web en tiempo real inspirada en **Google Cloud Con
 
 ## 🌐 Sitio Web Promocional (`/site`)
 
-Floci-GCP incluye un sitio web promocional interactivo:
+Aura-GCP incluye un sitio web promocional interactivo:
 
-👉 **`http://localhost:8080/site`** (o abrir `floci-gcp/website/index.html`).
+👉 **`http://localhost:8080/site`** (o abrir `aura-gcp/website/index.html`).
 
 - **Hero interactivo** con métricas clave en vivo.
 - **Terminal CLI interactiva (Playground)**: Permite ejecutar comandos simulados de `gcloud` (`gcloud storage buckets create`, `gcloud pubsub topics publish`, etc.) con respuestas reales.
@@ -210,7 +210,7 @@ curl -s -X PUT http://localhost:8080/v1/projects/local-project/topics/pedidos
 
 ### 2. HashiCorp Terraform / OpenTofu
 
-Configura el proveedor de Google para apuntar a Floci-GCP:
+Configura el proveedor de Google para apuntar a Aura-GCP:
 
 ```hcl
 terraform {
@@ -246,14 +246,14 @@ resource "google_pubsub_topic" "t" {
 ```python
 from google.cloud import storage, pubsub_v1
 
-# Conectar al emulador Floci-GCP Storage
+# Conectar al emulador Aura-GCP Storage
 storage_client = storage.Client(
     client_options={"api_endpoint": "http://localhost:8080"}
 )
 bucket = storage_client.create_bucket("mi-data-lake")
 print("Bucket local creado:", bucket.name)
 
-# Conectar a Floci-GCP Pub/Sub
+# Conectar a Aura-GCP Pub/Sub
 publisher = pubsub_v1.PublisherClient(
     client_options={"api_endpoint": "localhost:8080"}
 )
@@ -274,7 +274,7 @@ const storage = new Storage({
 
 // Crear bucket
 const [bucket] = await storage.createBucket("node-local-bucket");
-console.log("Bucket en Floci-GCP:", bucket.name);
+console.log("Bucket en Aura-GCP:", bucket.name);
 
 // Pub/Sub
 const pubsub = new PubSub({
@@ -305,7 +305,7 @@ func main() {
     )
     bkt := client.Bucket("go-local-bucket")
     _ = bkt.Create(ctx, "local-project", nil)
-    fmt.Println("Bucket creado en Floci-GCP:", bkt)
+    fmt.Println("Bucket creado en Aura-GCP:", bkt)
 }
 ```
 
@@ -315,14 +315,14 @@ func main() {
 import { http } from "net/http";
 
 export fn main(): Unit => {
-    let floci = "http://localhost:8080";
+    let aura = "http://localhost:8080";
 
-    // Verificar salud de Floci-GCP
-    let health = http.get(`${floci}/_gcp/health`);
-    println(`Floci-GCP Health: ${health.status}`);
+    // Verificar salud de Aura-GCP
+    let health = http.get(`${aura}/_gcp/health`);
+    println(`Aura-GCP Health: ${health.status}`);
 
     // Crear Bucket en Cloud Storage
-    let createBucket = http.post(`${floci}/storage/v1/b?project=local-project`, {
+    let createBucket = http.post(`${aura}/storage/v1/b?project=local-project`, {
         name: "aura-storage-lake",
         location: "US"
     });
@@ -362,7 +362,7 @@ export fn main(): Unit => {
 
 ## 🧪 Suite de Pruebas y Verificación
 
-Floci-GCP incluye una suite de pruebas de integración completa que evalúa todos los servicios emulados contra llamadas reales `cURL` y SDKs.
+Aura-GCP incluye una suite de pruebas de integración completa que evalúa todos los servicios emulados contra llamadas reales `cURL` y SDKs.
 
 Para ejecutar las pruebas:
 
@@ -378,7 +378,7 @@ GCP_PORT=8080 aurac run server.aura &
 
 ```
 ==================================================================
-🧪 RUNNING FLOCI-GCP INTEGRATION TEST SUITE
+🧪 RUNNING AURA-GCP INTEGRATION TEST SUITE
 Target Endpoint: http://localhost:8080
 ==================================================================
 
@@ -441,7 +441,7 @@ Target Endpoint: http://localhost:8080
 ==================================================================
 SUMMARY: Passed: 30 | Failed: 0
 ==================================================================
-🎉 ALL 30 TESTS PASSED FLAWLESSLY ON FLOCI-GCP!
+🎉 ALL 30 TESTS PASSED FLAWLESSLY ON AURA-GCP!
 ```
 
 ---
@@ -449,7 +449,7 @@ SUMMARY: Passed: 30 | Failed: 0
 ## 📂 Estructura del Proyecto
 
 ```
-floci-gcp/
+aura-gcp/
 ├── README.md                      # Documentación maestra y guía de referencia
 ├── server.aura                    # Punto de entrada y montaje del router HTTP
 ├── services/                      # Módulos y servicios desacoplados por dominio

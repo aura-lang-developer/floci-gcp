@@ -1,5 +1,5 @@
 // ==============================================================================
-// FLOCI-GCP: Google Cloud Storage (GCS) JSON API v1
+// AURA-GCP: Google Cloud Storage (GCS) JSON API v1
 // ==============================================================================
 
 import { getState } from "./state";

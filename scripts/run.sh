@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Floci-GCP Quick Launcher
+# Aura-GCP Quick Launcher
 # ==============================================================================
 
 set -e
@@ -10,6 +10,6 @@ PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 PORT=${1:-8080}
 
-echo "Starting Floci-GCP local Google Cloud emulator on port :${PORT}..."
+echo "Starting Aura-GCP local Google Cloud emulator on port :${PORT}..."
 cd "${PROJECT_DIR}"
 GCP_PORT=${PORT} aurac run server.aura

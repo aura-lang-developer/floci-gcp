@@ -1,5 +1,5 @@
 // ==============================================================================
-// FLOCI-GCP: In-Memory Google Cloud State Store
+// AURA-GCP: In-Memory Google Cloud State Store
 // ==============================================================================
 
 export type GcpStore = {
@@ -38,7 +38,7 @@ let storeInstance: GcpStore = {
       md5Hash: "a1b2c3d4e5f6g7h8",
       timeCreated: "2026-09-28T12:00:00.000Z",
       updated: "2026-09-28T12:00:00.000Z",
-      content: "{\"engine\":\"Floci-GCP\",\"status\":\"active\",\"speed\":\"Aura Lang Native < 2ms\"}"
+      content: "{\"engine\":\"Aura-GCP\",\"status\":\"active\",\"speed\":\"Aura Lang Native < 2ms\"}"
     }
   ],
   pubsubTopics: [
@@ -138,13 +138,13 @@ let storeInstance: GcpStore = {
     {
       logName: "projects/local-project/logs/cloudaudit.googleapis.com%2Factivity",
       resource: {type: "global"},
-      textPayload: "Floci-GCP runtime booted successfully with Cranelift native engine",
+      textPayload: "Aura-GCP runtime booted successfully with Cranelift native engine",
       severity: "INFO",
       timestamp: "2026-09-28T12:00:00.000Z"
     }
   ],
   liveLogs: [
-    {timestamp: "12:00:00", level: "info", service: "GCP-CORE", message: "Floci-GCP emulator booted in 1.82ms with zero JVM overhead"},
+    {timestamp: "12:00:00", level: "info", service: "GCP-CORE", message: "Aura-GCP emulator booted in 1.82ms with zero JVM overhead"},
     {timestamp: "12:00:01", level: "success", service: "SERVICEMUX", message: "Listening on http://localhost:8080 (GCP REST API multiplexer)"}
   ],
   requestAuditLog: [],

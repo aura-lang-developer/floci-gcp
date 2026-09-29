@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Aura GCP Local Cloud Runtime Launcher
+# ==============================================================================
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# Locate aurac binary
+if [ -x "${SCRIPT_DIR}/aurac" ]; then
+  AURAC="${SCRIPT_DIR}/aurac"
+elif command -v aurac >/dev/null 2>&1; then
+  AURAC="$(command -v aurac)"
+else
+  echo "❌ Error: 'aurac' compiler binary not found in '${SCRIPT_DIR}' or in PATH." >&2
+  echo "Please ensure 'aurac' is installed or present in the bin/ directory." >&2
+  exit 1
+fi
+
+# Verify Node.js runtime availability
+if ! command -v node >/dev/null 2>&1; then
+  echo "❌ Error: Node.js (v18+) is required by the Aura execution runtime." >&2
+  echo "Please install Node.js: https://nodejs.org/" >&2
+  exit 1
+fi
+
+cd "${ROOT_DIR}"
+exec "${AURAC}" run server.aura "$@"

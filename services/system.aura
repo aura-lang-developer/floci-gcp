@@ -1,5 +1,5 @@
 // ==============================================================================
-// FLOCI-GCP: System, Telemetry & Management Endpoints
+// AURA-GCP: System, Telemetry & Management Endpoints
 // ==============================================================================
 
 import { getState, resetState, clearRequestAuditLog } from "./state";
@@ -22,13 +22,13 @@ export fn registerSystemRoutes(mux: Any): Unit => {
   });
 
   mux.get("/health", fn(req: Any, res: Any) => {
-    http.json(res, http.StatusOK, {status: "healthy", engine: "floci-gcp"});
+    http.json(res, http.StatusOK, {status: "healthy", engine: "aura-gcp"});
   });
 
   // 2. Emulator Metadata
   mux.get("/_gcp/info", fn(req: Any, res: Any) => {
     http.json(res, http.StatusOK, {
-      name: "Floci-GCP",
+      name: "Aura-GCP",
       tagline: "Google Cloud Platform. Locally. Native Speed. Zero Gates.",
       license: "MIT",
       implementation: "Aura Language (mrojasb2000/aura-lang)",

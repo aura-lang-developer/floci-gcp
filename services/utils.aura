@@ -1,5 +1,5 @@
 // ==============================================================================
-// FLOCI-GCP: Utility Functions & Request Auditing
+// AURA-GCP: Utility Functions & Request Auditing
 // ==============================================================================
 
 import { getState } from "./state";

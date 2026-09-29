@@ -1,5 +1,5 @@
 // ==============================================================================
-// FLOCI-GCP: Standalone Local Google Cloud Platform Emulator in Aura Lang
+// AURA-GCP: Standalone Local Google Cloud Platform Emulator in Aura Lang
 // ==============================================================================
 // High-Performance Native Execution Model (Cranelift / Go-style CSP Fibers)
 // Listening on :8080 (Standard Google Cloud Local Port)
@@ -65,7 +65,7 @@ export fn main(): Unit => {
   registerLoggingRoutes(mux);
 
   println("==================================================================");
-  println("  🌐 FLOCI-GCP: LOCAL GOOGLE CLOUD EMULATOR (AURA LANG NATIVE)");
+  println("  🌐 AURA-GCP: LOCAL GOOGLE CLOUD EMULATOR (AURA LANG NATIVE)");
   println("==================================================================");
   println("  • Cold-Start Time:       ~1.8 ms (Zero JVM / Docker overhead)");
   println("  • Idle Memory:           ~8.2 MB (vs. 450+ MB gcloud Java emulators)");

@@ -1,5 +1,5 @@
 // ==============================================================================
-// FLOCI-GCP: Cloud Functions v2 REST API
+// AURA-GCP: Cloud Functions v2 REST API
 // ==============================================================================
 
 import { getState } from "./state";
@@ -67,7 +67,7 @@ export fn registerFunctionsRoutes(mux: Any): Unit => {
       executionId: executionId,
       result: JSON.stringify({
         status: "OK",
-        message: `Execution successful from Floci-GCP for function ${funcId}`,
+        message: `Execution successful from Aura-GCP for function ${funcId}`,
         executionTimeMs: 0.72,
         memoryUsedMb: 18
       })

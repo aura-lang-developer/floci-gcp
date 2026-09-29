@@ -1,5 +1,5 @@
 // ==============================================================================
-// FLOCI-GCP: OAuth2 Token & Compute Metadata Server Emulation
+// AURA-GCP: OAuth2 Token & Compute Metadata Server Emulation
 // ==============================================================================
 
 import { auditRequest, logEvent } from "./utils";
@@ -10,7 +10,7 @@ export fn registerAuthRoutes(mux: Any): Unit => {
     auditRequest(req, "Auth", 200);
     logEvent("AUTH", "info", "Issued mock OAuth2 bearer token for client handshake");
     http.json(res, http.StatusOK, {
-      access_token: "ya29.floci-gcp-mock-token-local",
+      access_token: "ya29.aura-gcp-mock-token-local",
       expires_in: 3600,
       token_type: "Bearer"
     });
@@ -19,7 +19,7 @@ export fn registerAuthRoutes(mux: Any): Unit => {
   mux.post("/token", fn(req: Any, res: Any) => {
     auditRequest(req, "Auth", 200);
     http.json(res, http.StatusOK, {
-      access_token: "ya29.floci-gcp-mock-token-local",
+      access_token: "ya29.aura-gcp-mock-token-local",
       expires_in: 3600,
       token_type: "Bearer"
     });
@@ -46,7 +46,7 @@ export fn registerAuthRoutes(mux: Any): Unit => {
     auditRequest(req, "Metadata", 200);
     res.setHeader("Metadata-Flavor", "Google");
     http.json(res, http.StatusOK, {
-      access_token: "ya29.floci-gcp-mock-token-local",
+      access_token: "ya29.aura-gcp-mock-token-local",
       expires_in: 3600,
       token_type: "Bearer"
     });

@@ -1,5 +1,5 @@
 // ==============================================================================
-// FLOCI-GCP: Web Console Interactive Controller
+// AURA-GCP: Web Console Interactive Controller
 // ==============================================================================
 
 const API_BASE = window.location.origin;
@@ -457,7 +457,7 @@ function setupControls() {
   const btnReset = document.getElementById("btnResetState");
   if (btnReset) {
     btnReset.addEventListener("click", async () => {
-      if (confirm("Reset all Floci-GCP resources to clean slate?")) {
+      if (confirm("Reset all Aura-GCP resources to clean slate?")) {
         await fetch(`${API_BASE}/_gcp/reset`, {method: "POST"});
         fetchResources();
       }

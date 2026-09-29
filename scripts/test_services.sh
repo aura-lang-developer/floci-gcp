@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Floci-GCP Integration Test Suite
+# Aura-GCP Integration Test Suite
 # ==============================================================================
 # Tests all 8 emulated Google Cloud services, Auth, and System endpoints
 # ==============================================================================
@@ -11,7 +11,7 @@ PORT=${1:-8080}
 BASE_URL="http://localhost:${PORT}"
 
 echo "=================================================================="
-echo "🧪 RUNNING FLOCI-GCP INTEGRATION TEST SUITE"
+echo "🧪 RUNNING AURA-GCP INTEGRATION TEST SUITE"
 echo "Target Endpoint: ${BASE_URL}"
 echo "=================================================================="
 
@@ -41,7 +41,7 @@ RES_HEALTH=$(curl -s "${BASE_URL}/_gcp/health")
 assert_test "Health Endpoint" '"status":"healthy"' "$RES_HEALTH"
 
 RES_INFO=$(curl -s "${BASE_URL}/_gcp/info")
-assert_test "Info Endpoint" '"name":"Floci-GCP"' "$RES_INFO"
+assert_test "Info Endpoint" '"name":"Aura-GCP"' "$RES_INFO"
 
 RES_STATS=$(curl -s "${BASE_URL}/_gcp/stats")
 assert_test "Stats Endpoint" '"memoryMb":8.2' "$RES_STATS"
@@ -53,10 +53,10 @@ RES_CLEAR_REQ=$(curl -s -X POST "${BASE_URL}/_gcp/clear-requests")
 assert_test "Clear Requests Endpoint" '"success":true' "$RES_CLEAR_REQ"
 
 RES_UI=$(curl -s "${BASE_URL}/_gcp/ui" | head -n 10)
-assert_test "Web Console Serving" 'Floci-GCP Console' "$RES_UI"
+assert_test "Web Console Serving" 'Aura-GCP Console' "$RES_UI"
 
 RES_SITE=$(curl -s "${BASE_URL}/site" | head -n 10)
-assert_test "Promotional Website Serving" 'Floci-GCP' "$RES_SITE"
+assert_test "Promotional Website Serving" 'Aura-GCP' "$RES_SITE"
 
 echo ""
 echo "--- 2. OAuth2 & Compute Metadata Server ---"
@@ -86,7 +86,7 @@ assert_test "GCS List Buckets" 'prod-assets' "$RES_GCS_LS"
 # Upload Object
 RES_GCS_PUT=$(curl -s -X POST "${BASE_URL}/upload/storage/v1/b/prod-assets/o?name=config.json" \
   -H "Content-Type: application/json" \
-  -d '{"appName":"floci-gcp","version":"1.0"}')
+  -d '{"appName":"aura-gcp","version":"1.0"}')
 assert_test "GCS Upload Object" '"name":"config.json"' "$RES_GCS_PUT"
 
 # Get Object Metadata
@@ -95,7 +95,7 @@ assert_test "GCS Get Object Metadata" '"bucket":"prod-assets"' "$RES_GCS_META"
 
 # Download Object Content
 RES_GCS_GET=$(curl -s "${BASE_URL}/storage/v1/b/prod-assets/o/config.json?alt=media")
-assert_test "GCS Download Object Media" '"appName":"floci-gcp"' "$RES_GCS_GET"
+assert_test "GCS Download Object Media" '"appName":"aura-gcp"' "$RES_GCS_GET"
 
 # List Objects
 RES_GCS_OBJS=$(curl -s "${BASE_URL}/storage/v1/b/prod-assets/o")
@@ -239,7 +239,7 @@ echo "SUMMARY: Passed: ${pass_count} | Failed: ${fail_count}"
 echo "=================================================================="
 
 if [ $fail_count -eq 0 ]; then
-  echo "🎉 ALL ${pass_count} TESTS PASSED FLAWLESSLY ON FLOCI-GCP!"
+  echo "🎉 ALL ${pass_count} TESTS PASSED FLAWLESSLY ON AURA-GCP!"
   exit 0
 else
   echo "❌ SOME TESTS FAILED!"

@@ -1,5 +1,5 @@
 // ==============================================================================
-// FLOCI-GCP: Promotional Website Interactive Controller
+// AURA-GCP: Promotional Website Interactive Controller
 // ==============================================================================
 
 const API_BASE = window.location.origin;

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Floci-GCP CLI Showcase Script
+# Aura-GCP CLI Showcase Script
 # ==============================================================================
-# Demonstrates Google Cloud REST APIs against local Floci-GCP (:8080)
+# Demonstrates Google Cloud REST APIs against local Aura-GCP (:8080)
 # ==============================================================================
 
 set -e
@@ -15,7 +15,7 @@ export PUBSUB_EMULATOR_HOST="localhost:${PORT}"
 export FIRESTORE_EMULATOR_HOST="localhost:${PORT}"
 
 echo "=================================================================="
-echo "🌐 FLOCI-GCP: LOCAL GOOGLE CLOUD DEMONSTRATION"
+echo "🌐 AURA-GCP: LOCAL GOOGLE CLOUD DEMONSTRATION"
 echo "Endpoint: ${BASE_URL} | Project: local-project"
 echo "=================================================================="
 echo ""
@@ -34,7 +34,7 @@ echo "✓ Bucket gs://demo-data-lake created"
 
 curl -s -X POST "${BASE_URL}/upload/storage/v1/b/demo-data-lake/o?name=sample.txt" \
   -H "Content-Type: text/plain" \
-  -d "Hello from local Google Cloud Storage on Floci-GCP!"
+  -d "Hello from local Google Cloud Storage on Aura-GCP!"
 echo ""
 echo "✓ Object sample.txt uploaded"
 echo "Downloading gs://demo-data-lake/sample.txt:"

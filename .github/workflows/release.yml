@@ -1,0 +1,334 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Version tag to release (e.g. v1.0.0)'
+        required: false
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Job 1: Build Multi-Architecture Docker Image and Push to GHCR
+  # ----------------------------------------------------------------------------
+  docker-release:
+    name: Build & Publish Docker Image (GHCR)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (multi-platform emulation)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=${{ inputs.tag_name }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.tag_name != '' }}
+
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ----------------------------------------------------------------------------
+  # Job 2: Build Standalone Platform Binaries & Packages
+  # ----------------------------------------------------------------------------
+  build-packages:
+    name: Build Binary (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.allow_failure || false }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            platform_id: linux-x86_64
+            binary_name: aurac
+            allow_failure: false
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            platform_id: linux-arm64
+            binary_name: aurac
+            allow_failure: true
+          - os: macos-13
+            target: x86_64-apple-darwin
+            platform_id: macos-x86_64
+            binary_name: aurac
+            allow_failure: false
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            platform_id: macos-arm64
+            binary_name: aurac
+            allow_failure: false
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            platform_id: windows-x64
+            binary_name: aurac.exe
+            allow_failure: false
+
+    steps:
+      - name: Determine Version Tag
+        shell: bash
+        run: |
+          VERSION="${{ github.event.inputs.tag_name }}"
+          if [ -z "$VERSION" ]; then
+            VERSION="${{ github.ref_name }}"
+          fi
+          if [ -z "$VERSION" ] || [ "$VERSION" = "main" ]; then
+            VERSION="v0.1.0"
+          fi
+          echo "RELEASE_VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: Checkout aura-gcp
+        uses: actions/checkout@v4
+        with:
+          path: aura-gcp
+
+      - name: Checkout aura-lang
+        uses: actions/checkout@v4
+        with:
+          repository: aura-lang-developer/aura-lang
+          path: aura-lang
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Aura Compiler (aurac)
+        shell: bash
+        run: |
+          cd aura-lang
+          mkdir -p playground && echo '<!DOCTYPE html><html><body><h1>Aura Playground</h1></body></html>' > playground/index.html
+          python3 -c "p='crates/aura-runtime/src/context.rs'; content=open(p).read(); 'options(att_syntax)' in content or open(p,'w').write(content.replace('\"    ret\"\\n);', '\"    ret\",\\n    options(att_syntax)\\n);')" 2>/dev/null || true
+          cargo build --release --bin aurac
+
+      - name: Package Release Bundle (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          DIST_DIR="aura-gcp-${RELEASE_VERSION}-${{ matrix.platform_id }}"
+          mkdir -p "${DIST_DIR}/bin"
+
+          # Copy compiler binary and launcher
+          cp aura-lang/target/release/${{ matrix.binary_name }} "${DIST_DIR}/bin/"
+          cp aura-gcp/bin/aura-gcp "${DIST_DIR}/bin/"
+          chmod +x "${DIST_DIR}/bin/"*
+
+          # Copy project source and services
+          cp aura-gcp/server.aura "${DIST_DIR}/"
+          cp -r aura-gcp/services "${DIST_DIR}/"
+          cp -r aura-gcp/ui "${DIST_DIR}/"
+          cp -r aura-gcp/website "${DIST_DIR}/"
+          cp -r aura-gcp/scripts "${DIST_DIR}/"
+          cp aura-gcp/README.md "${DIST_DIR}/"
+          cp aura-gcp/Dockerfile "${DIST_DIR}/"
+
+          # Create archive & checksum
+          tar -czvf "${DIST_DIR}.tar.gz" "${DIST_DIR}"
+          sha256sum "${DIST_DIR}.tar.gz" > "${DIST_DIR}.tar.gz.sha256"
+
+          mkdir -p artifacts
+          mv "${DIST_DIR}.tar.gz" artifacts/
+          mv "${DIST_DIR}.tar.gz.sha256" artifacts/
+
+      - name: Package Release Bundle (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ver = $env:RELEASE_VERSION
+          $platform = "${{ matrix.platform_id }}"
+          $distDir = "aura-gcp-$ver-$platform"
+
+          New-Item -ItemType Directory -Force -Path "$distDir\bin" | Out-Null
+
+          Copy-Item "aura-lang\target\release\${{ matrix.binary_name }}" "$distDir\bin\"
+          Copy-Item "aura-gcp\bin\aura-gcp.cmd" "$distDir\bin\"
+          Copy-Item "aura-gcp\bin\aura-gcp" "$distDir\bin\"
+          Copy-Item "aura-gcp\server.aura" "$distDir\"
+          Copy-Item -Recurse "aura-gcp\services" "$distDir\"
+          Copy-Item -Recurse "aura-gcp\ui" "$distDir\"
+          Copy-Item -Recurse "aura-gcp\website" "$distDir\"
+          Copy-Item -Recurse "aura-gcp\scripts" "$distDir\"
+          Copy-Item "aura-gcp\README.md" "$distDir\"
+          Copy-Item "aura-gcp\Dockerfile" "$distDir\"
+
+          Compress-Archive -Path "$distDir" -DestinationPath "$distDir.zip" -Force
+
+          $hash = (Get-FileHash -Algorithm SHA256 "$distDir.zip").Hash.ToLower()
+          "$hash  $distDir.zip" | Out-File -Encoding utf8 "$distDir.zip.sha256"
+
+          New-Item -ItemType Directory -Force -Path "artifacts" | Out-Null
+          Move-Item "$distDir.zip" "artifacts\"
+          Move-Item "$distDir.zip.sha256" "artifacts\"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.platform_id }}
+          path: artifacts/*
+          if-no-files-found: error
+
+  # ----------------------------------------------------------------------------
+  # Job 3: Publish GitHub Release with All Assets and Checksums
+  # ----------------------------------------------------------------------------
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-packages, docker-release]
+    runs-on: ubuntu-latest
+    if: always() && (needs.build-packages.result == 'success' || needs.build-packages.result == 'skipped')
+    steps:
+      - name: Determine Release Tag
+        shell: bash
+        run: |
+          VERSION="${{ github.event.inputs.tag_name }}"
+          if [ -z "$VERSION" ]; then
+            VERSION="${{ github.ref_name }}"
+          fi
+          if [ -z "$VERSION" ] || [ "$VERSION" = "main" ]; then
+            VERSION="v0.1.0"
+          fi
+          echo "RELEASE_VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: Checkout aura-gcp
+        uses: actions/checkout@v4
+
+      - name: Create Source Archives
+        shell: bash
+        run: |
+          mkdir -p release-files
+          SOURCE_NAME="aura-gcp-${RELEASE_VERSION}-source"
+          mkdir -p "${SOURCE_NAME}"
+
+          cp server.aura "${SOURCE_NAME}/"
+          cp -r services "${SOURCE_NAME}/"
+          cp -r ui "${SOURCE_NAME}/"
+          cp -r website "${SOURCE_NAME}/"
+          cp -r scripts "${SOURCE_NAME}/"
+          cp -r bin "${SOURCE_NAME}/"
+          cp Dockerfile "${SOURCE_NAME}/"
+          cp README.md "${SOURCE_NAME}/"
+
+          tar -czvf "release-files/${SOURCE_NAME}.tar.gz" "${SOURCE_NAME}"
+          zip -r "release-files/${SOURCE_NAME}.zip" "${SOURCE_NAME}"
+          rm -rf "${SOURCE_NAME}"
+
+      - name: Download Built Platform Packages
+        uses: actions/download-artifact@v4
+        with:
+          path: downloaded-artifacts
+          merge-multiple: true
+
+      - name: Consolidate Checksums
+        shell: bash
+        run: |
+          cp downloaded-artifacts/* release-files/ 2>/dev/null || true
+          cd release-files
+
+          echo "Generating unified SHA256SUMS.txt..."
+          sha256sum aura-gcp-*.tar.gz aura-gcp-*.zip > SHA256SUMS.txt 2>/dev/null || true
+          cat SHA256SUMS.txt
+
+      - name: Generate Release Notes & Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_VERSION }}
+          name: Aura GCP ${{ env.RELEASE_VERSION }}
+          draft: false
+          prerelease: false
+          files: release-files/*
+          body: |
+            ## 🌐 Aura GCP ${{ env.RELEASE_VERSION }}
+
+            Ultra-fast, native local Google Cloud runtime emulating GCP core services (Cloud Storage, Cloud Pub/Sub, Cloud Firestore, Cloud Functions v2, Secret Manager, Cloud KMS, Cloud Logging, OAuth2 / Compute Metadata).
+
+            ---
+
+            ### 🐳 Quick Start with Docker (Recommended)
+
+            Pull and run the official multi-architecture image (`linux/amd64` and `linux/arm64`):
+
+            ```bash
+            # Pull latest image from GitHub Container Registry
+            docker pull ghcr.io/${{ github.repository }}:latest
+
+            # Run Aura GCP emulator on default port 8080
+            docker run -d --name aura-gcp -p 8080:8080 ghcr.io/${{ github.repository }}:latest
+            ```
+
+            Or specify this release version:
+            ```bash
+            docker run -d --name aura-gcp -p 8080:8080 ghcr.io/${{ github.repository }}:${{ env.RELEASE_VERSION }}
+            ```
+
+            ---
+
+            ### 📦 Standalone Packages
+
+            Download the pre-bundled archive for your operating system:
+
+            | Platform | File |
+            | :--- | :--- |
+            | **Linux x86_64** | `aura-gcp-${{ env.RELEASE_VERSION }}-linux-x86_64.tar.gz` |
+            | **Linux ARM64** | `aura-gcp-${{ env.RELEASE_VERSION }}-linux-arm64.tar.gz` |
+            | **macOS Apple Silicon** | `aura-gcp-${{ env.RELEASE_VERSION }}-macos-arm64.tar.gz` |
+            | **macOS Intel** | `aura-gcp-${{ env.RELEASE_VERSION }}-macos-x86_64.tar.gz` |
+            | **Windows x64** | `aura-gcp-${{ env.RELEASE_VERSION }}-windows-x64.zip` |
+            | **Source Code** | `aura-gcp-${{ env.RELEASE_VERSION }}-source.tar.gz` |
+
+            #### Quick Execution (Unix / macOS / Linux):
+            ```bash
+            tar -xzf aura-gcp-${{ env.RELEASE_VERSION }}-<platform>.tar.gz
+            cd aura-gcp-${{ env.RELEASE_VERSION }}-<platform>
+            ./bin/aura-gcp
+            ```
+
+            #### Quick Execution (Windows):
+            ```powershell
+            Expand-Archive aura-gcp-${{ env.RELEASE_VERSION }}-windows-x64.zip
+            cd aura-gcp-${{ env.RELEASE_VERSION }}-windows-x64
+            .\bin\aura-gcp.cmd
+            ```
+
+            ---
+
+            ### 🌐 Interfaces & Verification
+            - **Web Admin Console:** `http://localhost:8080/_gcp/ui`
+            - **Health Check:** `http://localhost:8080/_gcp/health`
+            - **Promotional Showcase Site:** `http://localhost:8080/site`
+            - **Verification:** Compare with `SHA256SUMS.txt` included with this release.
