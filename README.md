@@ -116,6 +116,8 @@ flowchart TD
     StorageLayer & MessagingLayer & ComputeSecurityLayer & ObservabilityLayer <--> Store
 ```
 
+> 📖 **Documento de Arquitectura**: Para un análisis exhaustivo del diseño técnico, protocolos wire y comparativa entre nubes, consulta [**`docs/ARCHITECTURE.md`**](docs/ARCHITECTURE.md).
+
 ---
 
 ## 🚀 Inicio Rápido en 10 Segundos
